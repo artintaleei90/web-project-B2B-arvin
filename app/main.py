@@ -170,9 +170,12 @@ def create_project(d: ProjectIn, u: User = Depends(role("customer")), db: Sessio
     db.commit()
 
     # ارسال اعلان به تلگرام ادمین پس از ذخیره قطعی در دیتابیس
+# بخشی از کد ثبت پروژه در main.py
     notify(
-        db, None, "پروژه جدید نیازمند بررسی", 
-        f"عنوان: {p.title}\nشهر: {p.city}\nبودجه: {p.budget_min:,} تا {p.budget_max:,} تومان\nتوضیحات: {p.description}", 
+        db, 
+        None, 
+        "پروژه جدید نیازمند بررسی", 
+        f"#{p.id} {p.title} — {p.city}", 
         admin=True,
         buttons=[[{"text": "✅ تأیید پروژه", "callback_data": f"proj:approve:{p.id}"}]]
     )
