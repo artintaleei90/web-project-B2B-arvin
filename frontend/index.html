@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>صنعت مارکت | بازار آنلاین تخصصی صنعتی</title>
-<meta name="description" content="پروژه صنعتی خود را ثبت کنید، پیشنهاد پیمانکاران، تولیدکنندگان و ارائه‌دهندگان خدمات صنعتی را مقایسه کنید و همکاری را در یک پلتفرم مدیریت کنید.">
+<meta name="description" content="پروژه صنعتی خود را ثبت کنید، پیشنهاد پیمانکاران، تولیدکنندگان و ارائه‌دهندگان خدمات صنعتی را مقایسه کنید.">
 <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700;800&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#0a0c10;--panel:#12161d;--line:#232a36;--txt:#f2f4f7;--mute:#98a2b3;--or:#ff7a1a;--or2:#ff9a3d;--lt:#f4f5f7;--ltx:#161a22;
@@ -15,7 +15,7 @@ body{margin:0;background:var(--bg);color:var(--txt);font-family:Vazirmatn,Tahoma
 a{color:inherit;text-decoration:none}
 .w{max-width:1200px;margin:auto;padding:0 20px}
 :focus-visible{outline:2px solid var(--or);outline-offset:3px}
-.btn{display:inline-flex;align-items:center;gap:8px;padding:11px 24px;border-radius:12px;font-weight:700;border:1px solid var(--line);background:transparent;color:var(--txt);cursor:pointer;font:inherit;font-weight:700}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:11px 24px;border-radius:12px;font-weight:700;border:1px solid var(--line);background:transparent;color:var(--txt);cursor:pointer;font:inherit}
 .btn.p{background:linear-gradient(135deg,var(--or2),var(--or));color:#1a0d00;border:0;box-shadow:0 8px 24px rgba(255,122,26,.3)}
 header{position:sticky;top:env(safe-area-inset-top,0px);z-index:10;background:rgba(10,12,16,.9);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
 header .w{display:flex;align-items:center;gap:24px;height:68px}
@@ -33,9 +33,8 @@ h1 em{font-style:normal;color:var(--or)}
 .search{display:flex;flex-wrap:wrap;gap:8px;background:#fff;border-radius:18px;padding:8px;max-width:860px;color:var(--ltx)}
 .search input,.search select{flex:1 1 160px;border:0;background:transparent;font:inherit;padding:10px 14px;color:var(--ltx);min-width:0}
 .search input{flex:2 1 240px}
-.search button{flex:0 0 auto}
 .cats{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-top:22px;max-width:860px}
-.cat{background:rgba(18,22,29,.85);border:1px solid var(--line);border-radius:16px;padding:16px 10px;text-align:center;font-size:14px;font-weight:500}
+.cat{background:rgba(18,22,29,.85);border:1px solid var(--line);border-radius:16px;padding:16px 10px;text-align:center;font-size:14px;font-weight:500;cursor:pointer}
 .cat b{display:block;font-size:26px;margin-bottom:4px}
 .cat:hover{border-color:var(--or)}
 .stats{border-block:1px solid var(--line);background:var(--panel)}
@@ -72,35 +71,48 @@ section{padding:64px 0}
 footer{border-top:1px solid var(--line);padding:32px 0;color:var(--mute);font-size:14px}
 footer .w{display:flex;justify-content:space-between;flex-wrap:wrap;gap:16px}
 footer nav{margin:0}
+
+/* Modal Styling */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.8);backdrop-filter:blur(6px);z-index:100;display:none;align-items:center;justify-content:center;padding:20px}
+.modal-overlay.active{display:flex}
+.modal{background:var(--panel);border:1px solid var(--line);border-radius:20px;width:100%;max-width:460px;padding:28px;position:relative;box-shadow:0 20px 40px rgba(0,0,0,.5)}
+.modal h3{margin:0 0 20px;font-size:22px;color:var(--txt)}
+.modal-close{position:absolute;top:20px;left:20px;background:none;border:none;color:var(--mute);font-size:20px;cursor:pointer}
+.form-group{margin-bottom:16px}
+.form-group label{display:block;font-size:14px;color:var(--mute);margin-bottom:6px}
+.form-group input,.form-group select,.form-group textarea{width:100%;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:12px;color:var(--txt);font:inherit}
+.form-group textarea{resize:vertical;min-height:90px}
+.toggle-auth{color:var(--or);cursor:pointer;font-size:13px;margin-top:12px;display:inline-block}
+
 @media(max-width:820px){nav{display:none}.cats{grid-template-columns:repeat(2,1fr)}.why{grid-template-columns:1fr}.hdr-login{margin-inline-start:auto}}
 @media(prefers-reduced-motion:no-preference){.btn,.card,.cat{transition:border-color .2s,transform .2s}.card:hover,.btn.p:hover{transform:translateY(-2px)}}
 </style>
 </head>
 <body>
+
 <header><div class="w">
 <a class="logo" href="#"><span class="mark">⚙</span>صنعت مارکت</a>
-<nav aria-label="منوی اصلی"><a class="on" href="#">خانه</a><a href="#projects">پروژه‌ها</a><a href="#providers">ارائه‌دهندگان</a><a href="#cats">خدمات</a><a href="#how">نحوه کار</a><a href="#">درباره ما</a><a href="#">تماس با ما</a></nav>
-<a class="btn p hdr-login" href="#">ورود / ثبت‌نام</a>
+<nav aria-label="منوی اصلی"><a class="on" href="#">خانه</a><a href="#projects">پروژه‌ها</a><a href="#providers">ارائه‌دهندگان</a><a href="#cats">خدمات</a><a href="#how">نحوه کار</a></nav>
+<button class="btn p hdr-login" id="authBtn">ورود / ثبت‌نام</button>
 </div></header>
 
 <div class="hero"><div class="w">
 <div class="tag">بازار آنلاین تخصصی صنعتی</div>
 <h1>راهکار صنعتی موردنیازت را <em>پیدا کن.</em></h1>
 <p class="lead">اتصال کارفرماها به متخصصان، پیمانکاران، تولیدکنندگان و ارائه‌دهندگان خدمات صنعتی. پروژه‌ات را ثبت کن و بهترین پیشنهادها را مقایسه کن.</p>
-<form class="search" role="search" onsubmit="return false">
-<select aria-label="شهر"><option>همه شهرها</option><option>تهران</option><option>کرج</option><option>اصفهان</option><option>تبریز</option><option>مشهد</option></select>
-<input type="search" placeholder="جستجوی پروژه، تخصص یا نام مجموعه…" aria-label="جستجو">
-<select aria-label="دسته"><option>همه دسته‌ها</option><option>پیمانکاران و مجریان</option><option>تولیدکنندگان</option><option>خدمات صنعتی</option><option>سازندگان سفارشی</option><option>سایر</option></select>
-<button class="btn p" type="submit">جستجوی ارائه‌دهندگان</button>
+<form class="search" role="search" id="searchForm">
+<select aria-label="شهر" id="searchCity"><option value="">همه شهرها</option><option value="تهران">تهران</option><option value="کرج">کرج</option><option value="اصفهان">اصفهان</option><option value="تبریز">تبریز</option><option value="مشهد">مشهد</option></select>
+<input type="search" id="searchInput" placeholder="جستجوی پروژه، تخصص یا نام مجموعه…" aria-label="جستجو">
+<button class="btn p" type="submit">جستجوی پروژه‌ها</button>
 </form>
 <div class="cats" id="cats">
-<a class="cat" href="#"><b>🏗</b>پیمانکاران و مجریان</a>
-<a class="cat" href="#"><b>🏭</b>تولیدکنندگان</a>
-<a class="cat" href="#"><b>🛠</b>خدمات صنعتی</a>
-<a class="cat" href="#"><b>📐</b>سازندگان سفارشی</a>
-<a class="cat" href="#"><b>➕</b>سایر</a>
+<div class="cat" onclick="filterCategory(1)"><b>🏗</b>پیمانکاران و مجریان</div>
+<div class="cat" onclick="filterCategory(2)"><b>🏭</b>تولیدکنندگان</div>
+<div class="cat" onclick="filterCategory(3)"><b>🛠</b>خدمات صنعتی</div>
+<div class="cat" onclick="filterCategory(4)"><b>📐</b>سازندگان سفارشی</div>
+<div class="cat" onclick="filterCategory(5)"><b>➕</b>سایر</div>
 </div>
-<p style="margin-top:26px"><a class="btn p" href="#">ثبت پروژه</a></p>
+<p style="margin-top:26px"><button class="btn p btn-create-project">ثبت پروژه جدید</button></p>
 </div></div>
 
 <div class="stats"><div class="w">
@@ -110,46 +122,296 @@ footer nav{margin:0}
 </div></div>
 
 <section id="projects"><div class="w">
-<div class="sh"><div><h2>پروژه‌های فعال</h2><p>جدیدترین نیازهای تأییدشده در صنعت مارکت</p></div><a href="#">مشاهده همه</a></div>
-<div class="grid">
-<article class="card"><span class="badge">دریافت پیشنهاد</span><h3>کابل‌کشی و بیگ‌بگ‌سازی</h3><div class="meta"><span>📍 قزوین</span><span>خدمات صنعتی</span></div><div class="foot"><span>مهلت: ۴۵ روز</span><b>۳۰ میلیارد ریال</b></div><div class="meta">۱۲ ارائه‌دهنده پیشنهاد داده‌اند</div></article>
-<article class="card"><span class="badge g">پروژه جدید</span><h3>تابلو برق فشار ضعیف</h3><div class="meta"><span>📍 کرج</span><span>تولیدکنندگان</span></div><div class="foot"><span>مهلت: ۳۰ روز</span><b>۱۵ میلیارد ریال</b></div><div class="meta">۴ ارائه‌دهنده پیشنهاد داده‌اند</div></article>
-<article class="card"><span class="badge">دریافت پیشنهاد</span><h3>احداث سوله صنعتی</h3><div class="meta"><span>📍 تهران</span><span>پیمانکاران و مجریان</span></div><div class="foot"><span>مهلت: ۶۰ روز</span><b>۱۲۰ میلیارد ریال</b></div><div class="meta">۹ ارائه‌دهنده پیشنهاد داده‌اند</div></article>
-<article class="card"><span class="badge g">پروژه جدید</span><h3>راه‌اندازی خط تولید</h3><div class="meta"><span>📍 اصفهان</span><span>سازندگان سفارشی</span></div><div class="foot"><span>مهلت: ۹۰ روز</span><b>۲۵۰ میلیارد ریال</b></div><div class="meta">۶ ارائه‌دهنده پیشنهاد داده‌اند</div></article>
+<div class="sh"><div><h2>پروژه‌های فعال</h2><p>جدیدترین نیازهای تأییدشده در صنعت مارکت</p></div><a href="#" onclick="fetchProjects(); return false;">مشاهده همه</a></div>
+<div class="grid" id="projectsGrid">
+  <p style="color:var(--mute)">در حال دریافت پروژه‌ها...</p>
 </div></div></section>
 
-<section class="how" id="how"><div class="w">
-<div class="sh"><div><h2>چطور کار می‌کند؟</h2><p>مسیر ساده از ثبت نیاز تا ثبت سابقه</p></div></div>
-<div class="tl">
-<div class="st"><b>ثبت نیاز</b><span>پروژه را با جزئیات ثبت کنید</span></div>
-<div class="st"><b>دریافت پیشنهاد</b><span>پس از تأیید، پیشنهادها می‌رسد</span></div>
-<div class="st"><b>مذاکره</b><span>گفتگو داخل پلتفرم</span></div>
-<div class="st"><b>انتخاب</b><span>مقایسه و انتخاب ارائه‌دهنده</span></div>
-<div class="st"><b>قرارداد</b><span>تأیید هر دو طرف و ادمین</span></div>
-<div class="st"><b>اجرا</b><span>پیگیری مراحل پروژه</span></div>
-<div class="st"><b>سابقه</b><span>پایان، امتیاز و ثبت سابقه</span></div>
-</div></div></section>
+<!-- Modal Auth -->
+<div class="modal-overlay" id="authModal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeAuthModal()">✕</button>
+    <h3 id="modalTitle">ورود به حساب</h3>
+    <form id="authForm" onsubmit="handleAuthSubmit(event)">
+      <div class="form-group" id="nameGroup" style="display:none;">
+        <label>نام و نام خانوادگی / شرکت</label>
+        <input type="text" id="authName" placeholder="مثال: شرکت صنعتی پارس">
+      </div>
+      <div class="form-group" id="cityGroup" style="display:none;">
+        <label>شهر</label>
+        <input type="text" id="authCity" placeholder="مثال: تهران">
+      </div>
+      <div class="form-group">
+        <label>ایمیل</label>
+        <input type="email" id="authEmail" required placeholder="name@example.com">
+      </div>
+      <div class="form-group">
+        <label>رمز عبور (حداقل ۸ کاراکتر)</label>
+        <input type="password" id="authPassword" required minlength="8">
+      </div>
+      <div class="form-group" id="roleGroup" style="display:none;">
+        <label>نقش کاربری</label>
+        <select id="authRole">
+          <option value="customer">کارفرما (ثبت‌کننده پروژه)</option>
+          <option value="provider">پیمانکار / مجری (ارائه‌دهنده خدمات)</option>
+        </select>
+      </div>
+      <button class="btn p" type="submit" style="width:100%;margin-top:10px" id="authSubmitBtn">ورود</button>
+    </form>
+    <span class="toggle-auth" id="toggleAuthMode" onclick="toggleAuthMode()">حساب ندارید؟ ثبت‌نام کنید</span>
+  </div>
+</div>
 
-<section id="providers"><div class="w">
-<div class="sh"><div><h2>ارائه‌دهندگان برتر</h2><p>مجموعه‌های تأییدشده با سابقه ثبت‌شده</p></div><a href="#">مشاهده همه</a></div>
-<div class="grid">
-<article class="card"><div class="prow"><div class="avatar">آ</div><div><h3>آرین سازه</h3><div class="meta">پیمانکار سوله · تهران</div></div></div><span class="badge g">تأییدشده</span><div class="foot"><span><span class="stars">★★★★★</span> ۴٫۸</span><span><b>۴۲</b> پروژه</span></div></article>
-<article class="card"><div class="prow"><div class="avatar">ب</div><div><h3>برق صنعت پارس</h3><div class="meta">تولیدکننده تابلو برق · کرج</div></div></div><span class="badge g">تأییدشده</span><div class="foot"><span><span class="stars">★★★★☆</span> ۴٫۶</span><span><b>۲۸</b> پروژه</span></div></article>
-<article class="card"><div class="prow"><div class="avatar">ف</div><div><h3>فنی‌مهندسی فولاد‌کار</h3><div class="meta">ساخت سفارشی · اصفهان</div></div></div><span class="badge g">تأییدشده</span><div class="foot"><span><span class="stars">★★★★★</span> ۴٫۹</span><span><b>۳۶</b> پروژه</span></div></article>
-<article class="card"><div class="prow"><div class="avatar">ن</div><div><h3>نگهداران کالیبره</h3><div class="meta">کالیبراسیون و بازرسی · تبریز</div></div></div><span class="badge">در حال بررسی</span><div class="foot"><span><span class="stars">★★★★☆</span> ۴٫۴</span><span><b>۱۵</b> پروژه</span></div></article>
-</div></div></section>
-
-<section style="padding-top:0"><div class="w why">
-<div><h2 style="font-size:28px;margin:0 0 10px">چرا صنعت مارکت؟</h2><p style="color:var(--mute)">همه مراحل همکاری، از اولین پیشنهاد تا پایان پروژه، یک‌جا و شفاف مدیریت می‌شود.</p></div>
-<ul><li>دسترسی به متخصصان معتبر و تأییدشده</li><li>مقایسه پیشنهادها بر اساس قیمت، زمان و سابقه</li><li>مذاکره امن داخل پلتفرم</li><li>مدیریت پروژه و قرارداد</li><li>ثبت سابقه همکاری برای هر دو طرف</li></ul>
-</div></section>
-
-<section style="padding-top:0"><div class="w"><div class="cta">
-<h2>پروژه صنعتی داری؟ همین حالا ثبتش کن.</h2><p>پس از تأیید، ارائه‌دهندگان مرتبط با شهر و تخصص پروژه‌ات پیشنهاد می‌دهند.</p><a class="btn p" href="#">ثبت پروژه</a>
-</div></div></section>
+<!-- Modal Project -->
+<div class="modal-overlay" id="projectModal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeProjectModal()">✕</button>
+    <h3>ثبت پروژه جدید</h3>
+    <form id="projectForm" onsubmit="handleProjectSubmit(event)">
+      <div class="form-group">
+        <label>عنوان پروژه</label>
+        <input type="text" id="pTitle" required minlength="5" placeholder="مثال: ساخت سوله صنعتی ۵۰۰ متری">
+      </div>
+      <div class="form-group">
+        <label>دسته‌بندی</label>
+        <select id="pCategory" required>
+          <!-- بارگذاری از API -->
+        </select>
+      </div>
+      <div class="form-group">
+        <label>شهر محل اجرای پروژه</label>
+        <input type="text" id="pCity" required placeholder="مثال: کرج">
+      </div>
+      <div class="form-group" style="display:flex; gap:10px;">
+        <div style="flex:1">
+          <label>حداقل بودجه (تومان)</label>
+          <input type="number" id="pBudgetMin" required min="0">
+        </div>
+        <div style="flex:1">
+          <label>حداکثر بودجه (تومان)</label>
+          <input type="number" id="pBudgetMax" required min="0">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>مدت زمان اجرا (روز)</label>
+        <input type="number" id="pDuration" required min="1" max="3650" value="30">
+      </div>
+      <div class="form-group">
+        <label>توضیحات کامل پروژه</label>
+        <textarea id="pDescription" required minlength="20" placeholder="مشخصات و الزامات پروژه را وارد نمایید..."></textarea>
+      </div>
+      <button class="btn p" type="submit" style="width:100%;margin-top:10px">ارسال پروژه جهت بررسی</button>
+    </form>
+  </div>
+</div>
 
 <footer><div class="w"><span class="logo" style="font-size:16px"><span class="mark" style="width:28px;height:28px;font-size:14px">⚙</span>صنعت مارکت</span>
-<nav><a href="#projects">پروژه‌ها</a><a href="#providers">ارائه‌دهندگان</a><a href="#cats">خدمات</a><a href="#">درباره ما</a><a href="#">تماس با ما</a></nav>
 <span>© تمامی حقوق برای صنعت مارکت محفوظ است</span></div></footer>
+
+<script>
+// تنظیم خودکار آدرس API بک‌اند
+const API_URL = "http://127.0.0.1:8000/api";
+let isSignUpMode = false;
+
+document.addEventListener("DOMContentLoaded", () => {
+  checkLoginStatus();
+  fetchCategories();
+  fetchProjects();
+
+  document.querySelectorAll(".btn-create-project").forEach(btn => {
+    btn.addEventListener("click", openProjectModal);
+  });
+
+  document.getElementById("authBtn").addEventListener("click", () => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      if (confirm("آیا قصد خروج از حساب کاربری را دارید؟")) {
+        localStorage.removeItem("token");
+        checkLoginStatus();
+        alert("از حساب کاربری خارج شدید.");
+      }
+    } else {
+      openAuthModal();
+    }
+  });
+
+  document.getElementById("searchForm").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const city = document.getElementById("searchCity").value;
+    fetchProjects(city);
+  });
+});
+
+function checkLoginStatus() {
+  const token = localStorage.getItem("token");
+  const authBtn = document.getElementById("authBtn");
+  if (token) {
+    authBtn.textContent = "خروج از حساب";
+    authBtn.style.background = "#e53e3e";
+  } else {
+    authBtn.textContent = "ورود / ثبت‌نام";
+    authBtn.style.background = "";
+  }
+}
+
+function openAuthModal() { document.getElementById("authModal").classList.add("active"); }
+function closeAuthModal() { document.getElementById("authModal").classList.remove("active"); }
+
+function openProjectModal() {
+  const token = localStorage.getItem("token");
+  if (!token) {
+    alert("لطفاً ابتدا وارد حساب کاربری خود شوید.");
+    openAuthModal();
+    return;
+  }
+  document.getElementById("projectModal").classList.add("active");
+}
+function closeProjectModal() { document.getElementById("projectModal").classList.remove("active"); }
+
+function toggleAuthMode() {
+  isSignUpMode = !isSignUpMode;
+  document.getElementById("modalTitle").textContent = isSignUpMode ? "ثبت‌نام حساب جدید" : "ورود به حساب";
+  document.getElementById("authSubmitBtn").textContent = isSignUpMode ? "ثبت‌نام" : "ورود";
+  document.getElementById("toggleAuthMode").textContent = isSignUpMode ? "حساب دارید؟ وارد شوید" : "حساب ندارید؟ ثبت‌نام کنید";
+  document.getElementById("nameGroup").style.display = isSignUpMode ? "block" : "none";
+  document.getElementById("cityGroup").style.display = isSignUpMode ? "block" : "none";
+  document.getElementById("roleGroup").style.display = isSignUpMode ? "block" : "none";
+}
+
+// 🟢 ثبت‌نام و ورود (اصلاح آدرس به /api/auth/register و /api/auth/login)
+async function handleAuthSubmit(e) {
+  e.preventDefault();
+  const email = document.getElementById("authEmail").value;
+  const password = document.getElementById("authPassword").value;
+  const endpoint = isSignUpMode ? "/auth/register" : "/auth/login";
+
+  const payload = { email, password };
+  if (isSignUpMode) {
+    payload.name = document.getElementById("authName").value || "کاربر جدید";
+    payload.city = document.getElementById("authCity").value || "تهران";
+    payload.role = document.getElementById("authRole").value;
+  }
+
+  try {
+    const res = await fetch(API_URL + endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      const msg = Array.isArray(data.detail) ? data.detail[0].msg : data.detail;
+      throw new Error(msg || "خطایی رخ داده است.");
+    }
+
+    if (data.token) {
+      localStorage.setItem("token", data.token);
+      alert("با موفقیت وارد شدید.");
+      closeAuthModal();
+      checkLoginStatus();
+    } else if (isSignUpMode) {
+      alert("ثبت‌نام با موفقیت انجام شد! اکنون وارد شوید.");
+      toggleAuthMode();
+    }
+  } catch (err) {
+    alert(err.message);
+  }
+}
+
+// 🟢 ارسال پروژه جدید (همراه با هدر Authorization)
+async function handleProjectSubmit(e) {
+  e.preventDefault();
+  const token = localStorage.getItem("token");
+  if (!token) {
+    alert("توکن منقضی شده است. دوباره وارد شوید.");
+    return;
+  }
+
+  const payload = {
+    title: document.getElementById("pTitle").value,
+    category_id: parseInt(document.getElementById("pCategory").value),
+    city: document.getElementById("pCity").value,
+    budget_min: parseInt(document.getElementById("pBudgetMin").value),
+    budget_max: parseInt(document.getElementById("pBudgetMax").value),
+    duration_days: parseInt(document.getElementById("pDuration").value),
+    description: document.getElementById("pDescription").value
+  };
+
+  try {
+    const res = await fetch(API_URL + "/projects", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`
+      },
+      body: JSON.stringify(payload)
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      if (res.status === 403) {
+        throw new Error("فقط حساب‌های کارفرما (Customer) اجازه ثبت پروژه دارند. لطفا با حساب کارفرما وارد شوید.");
+      }
+      const msg = Array.isArray(data.detail) ? data.detail[0].msg : data.detail;
+      throw new Error(msg || "خطا در ثبت پروژه.");
+    }
+
+    alert("پروژه با موفقیت ثبت شد و پس از بررسی ادمین فعال خواهد شد.");
+    closeProjectModal();
+    fetchProjects();
+  } catch (err) {
+    alert(err.message);
+  }
+}
+
+async function fetchCategories() {
+  try {
+    const res = await fetch(API_URL + "/categories");
+    if (!res.ok) return;
+    const cats = await res.json();
+    const select = document.getElementById("pCategory");
+    select.innerHTML = cats.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+  } catch (err) {
+    console.error("خطا در بارگذاری دسته‌بندی‌ها:", err);
+  }
+}
+
+async function fetchProjects(city = "", categoryId = null) {
+  const container = document.getElementById("projectsGrid");
+  try {
+    let url = API_URL + "/projects";
+    const params = new URLSearchParams();
+    if (city) params.append("city", city);
+    if (categoryId) params.append("category_id", categoryId);
+    if (params.toString()) url += "?" + params.toString();
+
+    const res = await fetch(url);
+    if (!res.ok) throw new Error("خطا در دریافت پروژه‌ها");
+    const projects = await res.json();
+
+    if (projects.length === 0) {
+      container.innerHTML = `<p style="color:var(--mute)">هیچ پروژه‌ای یافت نشد.</p>`;
+      return;
+    }
+
+    container.innerHTML = projects.map(p => `
+      <article class="card">
+        <span class="badge ${p.status === 'RECEIVING_PROPOSALS' ? 'g' : ''}">${p.status === 'RECEIVING_PROPOSALS' ? 'دریافت پیشنهاد' : p.status}</span>
+        <h3>${p.title}</h3>
+        <div class="meta"><span>📍 ${p.city || 'نامشخص'}</span><span>مدت: ${p.duration_days} روز</span></div>
+        <div class="foot"><span>بودجه:</span><b>${Number(p.budget_min).toLocaleString()} تا ${Number(p.budget_max).toLocaleString()} تومان</b></div>
+        <div class="meta" style="margin-top:6px">${p.proposal_count || 0} پیشنهاد ثبت شده</div>
+      </article>
+    `).join('');
+  } catch (err) {
+    container.innerHTML = `<p style="color:#ef4444">خطا در برقرار ارتباط با سرور.</p>`;
+  }
+}
+
+function filterCategory(catId) {
+  fetchProjects("", catId);
+}
+</script>
 </body>
 </html>
