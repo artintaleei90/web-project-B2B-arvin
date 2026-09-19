@@ -1,0 +1,137 @@
+{
+	"Wheel 1": {
+		"dictName": "Wheel 1",
+		"name": "Wheel",
+		"customName": "wheel1",
+		"type": "",
+		"x": 120,
+		"y": 15,
+		"z": 0,
+		"rx": 0,
+		"ry": -1,
+		"rz": 0,
+		"a": 1.57,
+		"custom": []
+	},
+	"Wheel 2": {
+		"dictName": "Wheel 2",
+		"name": "Wheel",
+		"customName": "wheel2",
+		"type": "",
+		"x": -120,
+		"y": 15,
+		"z": 0,
+		"rx": 0,
+		"ry": -1,
+		"rz": 0,
+		"a": 1.57,
+		"custom": []
+	},
+	"iu": {
+		"dictName": "iu",
+		"name": "InertialUnit",
+		"customName": "inertial_unit",
+		"type": "add",
+		"x": 0,
+		"y": 110,
+		"z": 0,
+		"rx": -0.58,
+		"ry": 0.58,
+		"rz": 0.58,
+		"a": 2.09,
+		"custom": []
+	},
+	"gps": {
+		"dictName": "gps",
+		"name": "GPS",
+		"customName": "gps",
+		"type": "add",
+		"x": 0,
+		"y": 0,
+		"z": 0,
+		"rx": -0.58,
+		"ry": 0.58,
+		"rz": 0.58,
+		"a": 2.09,
+		"custom": []
+	},
+	"lidar": {
+		"dictName": "lidar",
+		"name": "Lidar",
+		"customName": "lidar",
+		"type": "add",
+		"x": 0,
+		"y": 290,
+		"z": 0,
+		"rx": -0.5858,
+		"ry": 0.5858,
+		"rz": 0.5858,
+		"a": 2.09,
+		"custom": []
+	},
+	"Distance Sensor 1": {
+		"dictName": "Distance Sensor 1",
+		"name": "Distance Sensor",
+		"customName": "distance_sensor",
+		"type": "",
+		"x": 0,
+		"y": 5,
+		"z": -270,
+		"rx": -0.68,
+		"ry": 0.28,
+		"rz": 0.68,
+		"a": 2.6,
+		"custom": []
+	},
+	"camera2": {
+		"dictName": "camera2",
+		"name": "Camera",
+		"customName": "camera_left",
+		"type": "add",
+		"x": -307,
+		"y": 365,
+		"z": 0,
+		"rx": -0.24,
+		"ry": 0.69,
+		"rz": 0.69,
+		"a": 3.58,
+		"custom": [
+			32,
+			40
+		]
+	},
+	"camera3": {
+		"dictName": "camera3",
+		"name": "Camera",
+		"customName": "camera_front",
+		"type": "add",
+		"x": 0,
+		"y": 365,
+		"z": -304.6497232980441,
+		"rx": -0.67,
+		"ry": 0.33,
+		"rz": 0.67,
+		"a": 2.5,
+		"custom": [
+			32,
+			40
+		]
+	},
+	"camera1": {
+		"dictName": "camera1",
+		"name": "Camera",
+		"customName": "camera_right",
+		"type": "add",
+		"x": 307,
+		"y": 365,
+		"z": 0,
+		"rx": -0.9,
+		"ry": -0.31,
+		"rz": 0.3,
+		"a": 1.67,
+		"custom": [
+			32,
+			40
+		]
+	}
+}

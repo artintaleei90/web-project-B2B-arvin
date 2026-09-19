@@ -1,0 +1,137 @@
+{
+	"Wheel 1": {
+		"dictName": "Wheel 1",
+		"name": "Wheel",
+		"customName": "wheel1",
+		"type": "",
+		"x": 120,
+		"y": 15,
+		"z": 0,
+		"rx": 0,
+		"ry": -1,
+		"rz": 0,
+		"a": 1.57,
+		"custom": []
+	},
+	"Wheel 2": {
+		"dictName": "Wheel 2",
+		"name": "Wheel",
+		"customName": "wheel2",
+		"type": "",
+		"x": -120,
+		"y": 15,
+		"z": 0,
+		"rx": 0,
+		"ry": -1,
+		"rz": 0,
+		"a": 1.57,
+		"custom": []
+	},
+	"iu": {
+		"dictName": "iu",
+		"name": "InertialUnit",
+		"customName": "inertial_unit",
+		"type": "add",
+		"x": 0,
+		"y": 110,
+		"z": 0,
+		"rx": -0.58,
+		"ry": 0.58,
+		"rz": 0.58,
+		"a": 2.09,
+		"custom": []
+	},
+	"gps": {
+		"dictName": "gps",
+		"name": "GPS",
+		"customName": "gps",
+		"type": "add",
+		"x": 0,
+		"y": 0,
+		"z": 0,
+		"rx": -0.58,
+		"ry": 0.58,
+		"rz": 0.58,
+		"a": 2.09,
+		"custom": []
+	},
+	"lidar": {
+		"dictName": "lidar",
+		"name": "Lidar",
+		"customName": "lidar",
+		"type": "add",
+		"x": 0,
+		"y": 290,
+		"z": 0,
+		"rx": -0.5858,
+		"ry": 0.5858,
+		"rz": 0.5858,
+		"a": 2.09,
+		"custom": []
+	},
+	"Distance Sensor 1": {
+		"dictName": "Distance Sensor 1",
+		"name": "Distance Sensor",
+		"customName": "distance_sensor",
+		"type": "",
+		"x": 0,
+		"y": 5,
+		"z": -270,
+		"rx": -0.68,
+		"ry": 0.28,
+		"rz": 0.68,
+		"a": 2.6,
+		"custom": []
+	},
+	"camera2": {
+		"dictName": "camera2",
+		"name": "Camera",
+		"customName": "camera_right",
+		"type": "add",
+		"x": 210,
+		"y": 0,
+		"z": 0,
+		"rx": -1,
+		"ry": 0,
+		"rz": 0,
+		"a": 1.57,
+		"custom": [
+			40,
+			40
+		]
+	},
+	"camera3": {
+		"dictName": "camera3",
+		"name": "Camera",
+		"customName": "camera_front",
+		"type": "add",
+		"x": 0,
+		"y": 107,
+		"z": -343.5503536124562,
+		"rx": -0.65,
+		"ry": 0.39,
+		"rz": 0.65,
+		"a": 2.4,
+		"custom": [
+			40,
+			40
+		]
+	},
+	"camera1": {
+		"dictName": "camera1",
+		"name": "Camera",
+		"customName": "camera_left",
+		"type": "add",
+		"x": -210,
+		"y": 0,
+		"z": 0,
+		"rx": 0,
+		"ry": 0.71,
+		"rz": 0.71,
+		"a": 3.14,
+		"custom": [
+			40,
+			40
+		]
+	}
+}
