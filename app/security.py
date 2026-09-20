@@ -24,6 +24,17 @@ def make_token(uid: int) -> str:
     now = int(time.time())
     return jwt.encode({"sub": str(uid), "iat": now, "exp": now + TOKEN_TTL}, SECRET_KEY, algorithm="HS256")
 
+def optional_user(authorization: str | None = Header(default=None), db: Session = Depends(get_db)) -> User | None:
+    if not authorization or not authorization.startswith("Bearer "):
+        return None
+    try:
+        payload = jwt.decode(authorization[7:], SECRET_KEY, algorithms=["HS256"])
+        uid = int(payload["sub"])
+    except (jwt.PyJWTError, KeyError, ValueError, TypeError):
+        return None
+    u = db.get(User, uid)
+    return u if u and u.is_active else None
+
 def current_user(authorization: str | None = Header(default=None), db: Session = Depends(get_db)) -> User:
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(401, "ورود لازم است")

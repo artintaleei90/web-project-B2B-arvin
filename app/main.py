@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 from . import config
 from .db import Base, engine, get_db, SessionLocal
 from .models import *
-from .security import hash_pw, check_pw, make_token, current_user, role, rate_limit
+from .security import hash_pw, check_pw, make_token, current_user, optional_user, role, rate_limit
 from .contact_filter import redact
 from .states import move
 from .services import audit, notify, tg
@@ -23,9 +23,20 @@ else:
 
 Base.metadata.create_all(engine)
 CATS = [("contractors", "پیمانکاران و مجریان"), ("manufacturers", "تولیدکنندگان"), ("industrial-services", "خدمات صنعتی"), ("custom-makers", "سازندگان سفارشی"), ("other", "سایر")]
+SERVICES = [
+    ("industrial-electricity", "برق صنعتی", "طراحی، اجرا و تعمیرات برق صنعتی"),
+    ("industrial-automation", "اتوماسیون صنعتی", "PLC، کنترل، ابزار دقیق و اتوماسیون"),
+    ("shed-construction", "ساخت سوله", "طراحی و اجرای سازه و سوله صنعتی"),
+    ("panel-building", "ساخت تابلو برق", "ساخت و مونتاژ تابلوهای برق صنعتی"),
+    ("machinery", "ماشین‌آلات صنعتی", "طراحی و تولید ماشین‌آلات و خطوط تولید"),
+    ("maintenance", "تعمیرات و نگهداری", "سرویس، تعمیر و نگهداری تجهیزات صنعتی"),
+]
 with SessionLocal() as s:
     if not s.scalar(select(func.count(Category.id))):
         s.add_all([Category(slug=a, name=b) for a, b in CATS]); s.commit()
+    if not s.scalar(select(func.count(Service.id))):
+        cats = {c.slug: c.id for c in s.scalars(select(Category))}
+        s.add_all([Service(slug=slug, title=title, category_id=cats["industrial-services"], description=desc) for slug, title, desc in SERVICES]); s.commit()
 
 class RegisterIn(BaseModel):
     email: EmailStr
@@ -120,9 +131,12 @@ def list_projects(city:str|None=None,category_id:int|None=None,q:str|None=None,p
     return [p_dict(p,db) for p in db.scalars(query.order_by(Project.id.desc()).limit(20).offset((max(page,1)-1)*20))]
 
 @app.get("/api/projects/{pid}")
-def project_detail(pid:int,db:Session=Depends(get_db)):
+def project_detail(pid:int,u:User|None=Depends(optional_user),db:Session=Depends(get_db)):
     p=db.get(Project,pid)
-    if not p or p.status not in {"RECEIVING_PROPOSALS","PROVIDER_SELECTED","CONNECTION_PENDING","PAYMENT_PENDING","PAYMENT_APPROVED","CONTRACT_PENDING","CONTRACT_REVIEW","IN_PROGRESS","COMPLETION_PENDING","COMPLETED"}: raise HTTPException(404,"پروژه پیدا نشد")
+    if not p: raise HTTPException(404,"پروژه پیدا نشد")
+    public_status={"RECEIVING_PROPOSALS","PROVIDER_SELECTED","CONNECTION_PENDING","PAYMENT_PENDING","PAYMENT_APPROVED","CONTRACT_PENDING","CONTRACT_REVIEW","IN_PROGRESS","COMPLETION_PENDING","COMPLETED"}
+    if p.status not in public_status and not (u and (u.id==p.customer_id or u.id==p.selected_provider_id or u.role=="admin")):
+        raise HTTPException(404,"پروژه پیدا نشد")
     return p_dict(p,db)
 
 @app.get("/api/providers")
