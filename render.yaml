@@ -1,0 +1,42 @@
+services:
+  # ── سرویس وب (FastAPI) ──
+  - type: web
+    name: sanat-market-api
+    runtime: python
+    plan: starter          # برای دیسک باید پلن پولی باشه
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: ADMIN_CHAT_ID
+        value: "6933858510"
+      - key: SANAT_DB
+        value: /var/data/sanat_market.db
+      - key: CORS_ORIGINS
+        sync: false
+      - key: PYTHON_VERSION
+        value: "3.11.9"
+    disk:
+      name: sanat-data
+      mountPath: /var/data
+      sizeGB: 1
+
+  # ── لیسنر دکمه‌های تلگرام (Background Worker) ──
+  - type: worker
+    name: sanat-market-bot
+    runtime: python
+    plan: starter
+    buildCommand: pip install -r requirements.txt
+    startCommand: python check_message.py
+    envVars:
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: ADMIN_CHAT_ID
+        value: "6933858510"
+      - key: SANAT_DB
+        value: /var/data/sanat_market.db
+    disk:
+      name: sanat-data
+      mountPath: /var/data
+      sizeGB: 1
