@@ -7,6 +7,8 @@ import logging
 import base64
 import json
 import mimetypes
+import shutil
+import threading
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -21,15 +23,27 @@ except ImportError:
 from fastapi import BackgroundTasks, Depends, FastAPI, Header, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, EmailStr, field_validator
 
 BASE_DIR = Path(__file__).resolve().parent
-UPLOAD_DIR = BASE_DIR / "uploads" / "registrations"
+
+# اگر DATA_DIR ست شده باشد (مثلاً روی Render با دیسک پایدار)،
+# دیتابیس و آپلودها آنجا ذخیره می‌شوند؛ وگرنه کنار app.py.
+DATA_DIR = Path(os.getenv("DATA_DIR", str(BASE_DIR)))
+
+UPLOAD_DIR = DATA_DIR / "uploads" / "registrations"
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+PROJECTS_UPLOAD_DIR = DATA_DIR / "uploads" / "projects"
+PROJECTS_UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+
 MAX_FILE_BYTES = 10 * 1024 * 1024
 MAX_PROJECT_IMAGES = 20
 MAX_COMPANY_DOCUMENTS = 20
-DB_PATH = Path(os.getenv("SANAT_DB", str(BASE_DIR / "sanat_market.db")))
+MAX_PROJECT_ATTACHMENTS = 10
+MAX_ACTIVE_PROJECTS = 5
+
+DB_PATH = Path(os.getenv("SANAT_DB", str(DATA_DIR / "sanat_market.db")))
 ADMIN_CHAT_ID = int(os.getenv("ADMIN_CHAT_ID", "6933858510"))
 SESSION_DAYS = 30
 REJECT_COOLDOWN = timedelta(days=5)
@@ -46,6 +60,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# سرو فایل‌های آپلودی (تصاویر پروژه‌ها)
+app.mount("/uploads", StaticFiles(directory=str(DATA_DIR / "uploads")), name="uploads")
 
 
 # ---------------------------------------------------------------- database
@@ -103,12 +120,14 @@ def init_db():
         CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email_active
             ON users(email) WHERE status != 'rejected';
         CREATE INDEX IF NOT EXISTS idx_users_phone ON users(phone);
+
         CREATE TABLE IF NOT EXISTS projects (
             id TEXT PRIMARY KEY,
             user_id TEXT NOT NULL,
             title TEXT NOT NULL,
             created_at TEXT NOT NULL
         );
+
         CREATE TABLE IF NOT EXISTS reviews (
             id TEXT PRIMARY KEY,
             user_id TEXT NOT NULL,
@@ -116,6 +135,7 @@ def init_db():
             text TEXT NOT NULL,
             created_at TEXT NOT NULL
         );
+
         CREATE TABLE IF NOT EXISTS sessions (
             token_hash TEXT PRIMARY KEY,
             user_id TEXT NOT NULL,
@@ -125,6 +145,7 @@ def init_db():
         CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);
         """)
 
+        # ---- migration users ----
         existing = {row[1] for row in db.execute("PRAGMA table_info(users)").fetchall()}
         migrations = {
             "birth_date": "ALTER TABLE users ADD COLUMN birth_date TEXT",
@@ -144,6 +165,30 @@ def init_db():
         for column, sql in migrations.items():
             if column not in existing:
                 db.execute(sql)
+
+        # ---- migration projects ----
+        proj_cols = {row[1] for row in db.execute("PRAGMA table_info(projects)").fetchall()}
+        proj_migrations = {
+            "project_type": "ALTER TABLE projects ADD COLUMN project_type TEXT",
+            "ownership": "ALTER TABLE projects ADD COLUMN ownership TEXT",
+            "city": "ALTER TABLE projects ADD COLUMN city TEXT",
+            "duration": "ALTER TABLE projects ADD COLUMN duration TEXT",
+            "budget": "ALTER TABLE projects ADD COLUMN budget TEXT",
+            "description": "ALTER TABLE projects ADD COLUMN description TEXT DEFAULT ''",
+            "images": "ALTER TABLE projects ADD COLUMN images TEXT DEFAULT '[]'",
+            "status": "ALTER TABLE projects ADD COLUMN status TEXT DEFAULT 'pending'",
+            "reject_reason": "ALTER TABLE projects ADD COLUMN reject_reason TEXT",
+            "reviewed_at": "ALTER TABLE projects ADD COLUMN reviewed_at TEXT",
+        }
+        for column, sql in proj_migrations.items():
+            if column not in proj_cols:
+                db.execute(sql)
+
+        # ---- ایندکس‌های projects: فقط بعد از migration ----
+        db.executescript("""
+        CREATE INDEX IF NOT EXISTS idx_projects_user ON projects(user_id);
+        CREATE INDEX IF NOT EXISTS idx_projects_status ON projects(status);
+        """)
 
 
 init_db()
@@ -312,6 +357,50 @@ class DescriptionIn(BaseModel):
         return v
 
 
+class ProjectIn(BaseModel):
+    title: str
+    project_type: str
+    ownership: str
+    city: str
+    duration: str = ""
+    budget: str = ""
+    description: str = ""
+    images: list[str] = []
+
+    @field_validator("title", "project_type", "ownership", "city")
+    @classmethod
+    def required_text(cls, v):
+        v = (v or "").strip()
+        if not v:
+            raise ValueError("این فیلد الزامی است.")
+        if len(v) > 200:
+            raise ValueError("متن واردشده طولانی است.")
+        return v
+
+    @field_validator("duration", "budget")
+    @classmethod
+    def optional_text(cls, v):
+        v = (v or "").strip()
+        if len(v) > 200:
+            raise ValueError("متن طولانی است.")
+        return v
+
+    @field_validator("description")
+    @classmethod
+    def desc_ok(cls, v):
+        v = (v or "").strip()
+        if len(v) > 3000:
+            raise ValueError("توضیحات حداکثر ۳۰۰۰ کاراکتر.")
+        return v
+
+    @field_validator("images")
+    @classmethod
+    def images_ok(cls, v):
+        if len(v) > MAX_PROJECT_ATTACHMENTS:
+            raise ValueError(f"حداکثر {MAX_PROJECT_ATTACHMENTS} تصویر مجاز است.")
+        return v
+
+
 def user_public(row) -> dict:
     d = dict(row)
     d.pop("password_hash", None)
@@ -319,8 +408,18 @@ def user_public(row) -> dict:
     return d
 
 
+def project_public(row) -> dict:
+    d = dict(row)
+    try:
+        d["images"] = json.loads(d.get("images") or "[]")
+    except Exception:
+        d["images"] = []
+    return d
+
+
 # ---------------------------------------------------------------- telegram
 def send_admin_approval(user_id: str, text: str, kind: str = "registration", attachments=None):
+    """attachments: لیستی از dict با کلیدهای path و caption"""
     try:
         from telegram_api import send_approval
         send_approval(text[:4000], ADMIN_CHAT_ID, user_id, kind, attachments or [])
@@ -329,7 +428,8 @@ def send_admin_approval(user_id: str, text: str, kind: str = "registration", att
 
 
 # ---------------------------------------------------------------- file storage
-def save_data_url(data_url: str, user_id: str, label: str, index: int = 0) -> str:
+def save_data_url(data_url: str, sub_dir: str, label: str, index: int = 0,
+                  base_dir: Optional[Path] = None) -> str:
     if not isinstance(data_url, str) or not data_url.startswith("data:"):
         raise HTTPException(400, "فرمت فایل ارسال‌شده معتبر نیست.")
     try:
@@ -351,27 +451,76 @@ def save_data_url(data_url: str, user_id: str, label: str, index: int = 0) -> st
     if mime == "image/png": ext = ".png"
     if mime == "image/webp": ext = ".webp"
     if mime == "application/pdf": ext = ".pdf"
-    folder = UPLOAD_DIR / user_id
+
+    root = base_dir if base_dir is not None else UPLOAD_DIR
+    folder = root / sub_dir
     folder.mkdir(parents=True, exist_ok=True)
     filename = f"{label}_{index}{ext}"
     path = folder / filename
     path.write_bytes(raw)
-    return str(path.relative_to(BASE_DIR)).replace("\\", "/")
+    return str(path.relative_to(DATA_DIR)).replace("\\", "/")
 
 
 def save_registration_files(data: RegisterIn, user_id: str):
+    attachments = []
+
     national = save_data_url(data.national_id_image, user_id, "national_id")
-    project_paths = []
+    attachments.append({
+        "path": national,
+        "caption": f"🪪 کارت ملی — {data.first_name} {data.last_name} | کد ملی: {data.national_id}",
+    })
+
     if len(data.project_images) > MAX_PROJECT_IMAGES:
         raise HTTPException(400, f"حداکثر {MAX_PROJECT_IMAGES} تصویر پروژه مجاز است.")
+    total_proj = len(data.project_images)
     for i, item in enumerate(data.project_images, 1):
-        project_paths.append(save_data_url(item, user_id, "project_image", i))
-    company_paths = []
+        p = save_data_url(item, user_id, "project_image", i)
+        attachments.append({
+            "path": p,
+            "caption": f"🖼 تصویر پروژه {i} از {total_proj}",
+        })
+
     if len(data.company_documents) > MAX_COMPANY_DOCUMENTS:
         raise HTTPException(400, f"حداکثر {MAX_COMPANY_DOCUMENTS} مدرک شرکت مجاز است.")
+    total_doc = len(data.company_documents)
     for i, item in enumerate(data.company_documents, 1):
-        company_paths.append(save_data_url(item, user_id, "company_document", i))
-    return national, project_paths, company_paths
+        p = save_data_url(item, user_id, "company_document", i)
+        attachments.append({
+            "path": p,
+            "caption": f"📎 مدرک شرکت {i} از {total_doc}",
+        })
+
+    return attachments
+
+
+# ---------------------------------------------------------------- telegram listener (in-process)
+_telegram_thread: Optional[threading.Thread] = None
+
+
+def _run_telegram_listener():
+    try:
+        import check_message
+        check_message.check_messages()
+    except Exception:
+        log.exception("Telegram listener crashed")
+
+
+@app.on_event("startup")
+def _start_telegram_listener():
+    global _telegram_thread
+    if os.getenv("RUN_TELEGRAM_LISTENER", "1") != "1":
+        log.info("Telegram listener disabled (RUN_TELEGRAM_LISTENER != 1)")
+        return
+    if _telegram_thread and _telegram_thread.is_alive():
+        log.info("Telegram listener already running")
+        return
+    _telegram_thread = threading.Thread(
+        target=_run_telegram_listener,
+        name="telegram-listener",
+        daemon=True,
+    )
+    _telegram_thread.start()
+    log.info("Telegram listener thread started")
 
 
 # ---------------------------------------------------------------- routes
@@ -406,7 +555,11 @@ def register(data: RegisterIn, request: Request, background: BackgroundTasks):
         registration_ip = forwarded_for.split(",")[0].strip()
     device_browser = request.headers.get("user-agent", "unknown")[:1000]
 
-    national_id_path, project_paths, company_paths = save_registration_files(data, user_id)
+    attachments = save_registration_files(data, user_id)
+    national_id_path = attachments[0]["path"]
+    project_count = len(data.project_images)
+    company_count = len(data.company_documents)
+
     try:
         with get_db() as db:
             rows = db.execute(
@@ -431,14 +584,15 @@ def register(data: RegisterIn, request: Request, background: BackgroundTasks):
                 (user_id, data.first_name, data.last_name, data.national_id, data.birth_date, data.gender,
                  phone, email, hash_password(data.password), data.activity_city, data.activity_field,
                  data.work_history.strip(), description, national_id_path, data.project_samples.strip(),
-                 json.dumps(project_paths, ensure_ascii=False), company, company_id, role,
-                 json.dumps(company_paths, ensure_ascii=False), "pending", registration_time,
+                 json.dumps([a["path"] for a in attachments if "project_image" in a["path"]], ensure_ascii=False),
+                 company, company_id, role,
+                 json.dumps([a["path"] for a in attachments if "company_document" in a["path"]], ensure_ascii=False),
+                 "pending", registration_time,
                  registration_ip, registration_time, device_browser, request_id),
             )
     except sqlite3.IntegrityError:
         raise HTTPException(409, "این Gmail یا شماره تماس قبلاً ثبت شده است.")
     except Exception:
-        import shutil
         shutil.rmtree(UPLOAD_DIR / user_id, ignore_errors=True)
         raise
 
@@ -461,8 +615,8 @@ def register(data: RegisterIn, request: Request, background: BackgroundTasks):
 🔑 شناسه شرکت: {company_id or "—"}
 👷 نوع فعالیت: {role_text}
 📎 کارت ملی: ذخیره شد
-📎 تصاویر پروژه: {len(project_paths)} فایل
-📎 مدارک شرکت: {len(company_paths)} فایل
+📎 تصاویر پروژه: {project_count} فایل
+📎 مدارک شرکت: {company_count} فایل
 
 🔐 اطلاعات خودکار سیستم:
 🌐 IP ثبت‌نام: {registration_ip}
@@ -472,10 +626,9 @@ def register(data: RegisterIn, request: Request, background: BackgroundTasks):
 🧾 شناسه درخواست: {request_id}
 
 ⏳ وضعیت: در انتظار بررسی ادمین"""
-    attachments = [national_id_path, *project_paths, *company_paths]
+
     background.add_task(send_admin_approval, user_id, message, "registration", attachments)
 
-    # ---------- ساخت session و برگرداندن توکن ----------
     with get_db() as db:
         token = create_session(db, user_id)
         row = db.execute("SELECT * FROM users WHERE id=?", (user_id,)).fetchone()
@@ -519,8 +672,8 @@ def me(user=Depends(current_user)):
 @app.get("/api/profile")
 def profile(user=Depends(current_user)):
     with get_db() as db:
-        projects = [dict(x) for x in db.execute(
-            "SELECT id,title,created_at FROM projects WHERE user_id=? ORDER BY created_at DESC",
+        projects = [project_public(x) for x in db.execute(
+            "SELECT * FROM projects WHERE user_id=? ORDER BY created_at DESC",
             (user["id"],))]
         reviews = [dict(x) for x in db.execute(
             "SELECT employer_name,text,created_at FROM reviews WHERE user_id=? ORDER BY created_at DESC",
@@ -548,6 +701,112 @@ def update_description(data: DescriptionIn, background: BackgroundTasks, user=De
 {new_desc[:1500] or "(خالی)"}"""
     background.add_task(send_admin_approval, user["id"], message, "description")
     return {"message": "توضیحات برای بررسی ادمین ارسال شد. تا تأیید، حساب شما قفل نمی‌شود."}
+
+
+# ================================================================
+#                        PROJECTS
+# ================================================================
+@app.post("/api/projects")
+def create_project(data: ProjectIn, background: BackgroundTasks,
+                   user=Depends(current_user)):
+    if user["status"] != "approved":
+        raise HTTPException(403, "حساب شما هنوز تأیید نشده است.")
+
+    with get_db() as db:
+        active = db.execute(
+            "SELECT COUNT(*) AS c FROM projects WHERE user_id=? AND status='pending'",
+            (user["id"],),
+        ).fetchone()["c"]
+    if active >= MAX_ACTIVE_PROJECTS:
+        raise HTTPException(
+            429,
+            f"حداکثر {MAX_ACTIVE_PROJECTS} پروژه در حال بررسی می‌توانید داشته باشید. "
+            "تا تعیین وضعیت پروژه‌های قبلی صبر کنید.",
+        )
+
+    project_id = secrets.token_hex(16)
+
+    image_paths = []
+    if len(data.images) > MAX_PROJECT_ATTACHMENTS:
+        raise HTTPException(400, f"حداکثر {MAX_PROJECT_ATTACHMENTS} تصویر مجاز است.")
+    for i, item in enumerate(data.images, 1):
+        p = save_data_url(item, user["id"], "project_image", i,
+                          base_dir=PROJECTS_UPLOAD_DIR)
+        image_paths.append(p)
+
+    created_at = now_iso()
+
+    try:
+        with get_db() as db:
+            db.execute(
+                """INSERT INTO projects
+                   (id,user_id,title,project_type,ownership,city,duration,budget,
+                    description,images,status,created_at)
+                   VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
+                (project_id, user["id"], data.title, data.project_type,
+                 data.ownership, data.city, data.duration, data.budget,
+                 data.description, json.dumps(image_paths, ensure_ascii=False),
+                 "pending", created_at),
+            )
+    except Exception:
+        shutil.rmtree(PROJECTS_UPLOAD_DIR / user["id"], ignore_errors=True)
+        raise
+
+    role_text = {"employer": "کارفرما", "contractor": "پیمانکار"}.get(
+        user["role"], "ثبت نشده")
+    message = f"""🆕 پروژه جدید در انتظار تأیید
+
+👤 کاربر: {user['first_name']} {user['last_name']}
+📧 {user['email']}
+📱 {user['phone']}
+👷 نقش: {role_text}
+
+📌 عنوان پروژه: {data.title}
+🏷 نوع پروژه: {data.project_type}
+🏢 دستمزد/مالکیت: {data.ownership}
+📍 شهر: {data.city}
+⏱ مدت زمان: {data.duration or '—'}
+💰 بودجه: {data.budget or '—'}
+📝 توضیحات: {data.description[:1500] or '—'}
+
+🖼 تعداد تصاویر: {len(image_paths)}
+🆔 شناسه پروژه: {project_id}"""
+
+    attachments = [
+        {"path": p, "caption": f"🖼 تصویر پروژه {i} از {len(image_paths)}"}
+        for i, p in enumerate(image_paths, 1)
+    ]
+    background.add_task(
+        send_admin_approval, project_id, message, "project", attachments,
+    )
+
+    return {
+        "message": "پروژه ثبت شد و در انتظار تأیید ادمین است.",
+        "project_id": project_id,
+    }
+
+
+@app.get("/api/projects/mine")
+def my_projects(user=Depends(current_user)):
+    with get_db() as db:
+        rows = db.execute(
+            "SELECT * FROM projects WHERE user_id=? ORDER BY created_at DESC",
+            (user["id"],),
+        ).fetchall()
+    return {"projects": [project_public(r) for r in rows]}
+
+
+@app.get("/api/projects")
+def public_projects(limit: int = 50, offset: int = 0):
+    with get_db() as db:
+        rows = db.execute(
+            """SELECT p.*, u.first_name, u.last_name, u.company_name
+               FROM projects p JOIN users u ON u.id = p.user_id
+               WHERE p.status='approved'
+               ORDER BY p.created_at DESC LIMIT ? OFFSET ?""",
+            (limit, offset),
+        ).fetchall()
+    return {"projects": [project_public(r) for r in rows]}
 
 
 # ---------------------------------------------------------------- serve the site
