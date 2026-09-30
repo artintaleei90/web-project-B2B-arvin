@@ -2416,8 +2416,7 @@ body.is-logged .top-auth-buttons,body.is-logged .mnav-auth{display:none !importa
 <script>
 'use strict';
 /* ============ API ============ */
-const API_BASE = window.SANAT_API_BASE ||
-  ((location.protocol.startsWith('http') && location.port === '8000') ? '' : 'http://127.0.0.1:8000');
+const API_BASE = window.SANAT_API_BASE || '';
 const TOKEN_KEY = 'sanat_token';
 let currentUser = null;
 const $ = id => document.getElementById(id);
