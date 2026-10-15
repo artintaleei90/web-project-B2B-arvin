@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>پروژه‌های فعال | صنعت مارکت</title>
+<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+<style>
+:root{--navy:#061522;--navy2:#0A2233;--orange:#FF6A00;--bg:#F2F5F7;--text:#172733;--muted:#6B737A;--border:#E1E7EB}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Vazirmatn,system-ui,sans-serif}
+a{text-decoration:none;color:inherit}.container{max-width:1240px;margin:auto;padding:0 20px}
+.header{height:72px;background:var(--navy);color:#fff;display:flex;align-items:center}
+.header .inner{display:flex;align-items:center;justify-content:space-between;width:100%;gap:20px}
+.logo img{height:43px}.back{color:#cbd5da;font-size:13px}.back:hover{color:#fff}
+.hero{background:var(--navy);padding:45px 0 55px;color:#fff}.hero h1{margin:0 0 8px;font-size:34px}.hero p{margin:0;color:#aebbc3;font-size:13px}
+.filters{margin-top:24px;background:#fff;border-radius:13px;padding:10px;display:grid;grid-template-columns:1fr 210px 120px;gap:8px}
+.filters input,.filters select,.filters button{font-family:inherit;border:1px solid var(--border);border-radius:9px;padding:11px 13px;outline:none}
+.filters button{background:var(--orange);color:#fff;border-color:var(--orange);font-weight:700;cursor:pointer}
+.section{padding:45px 0}.head{display:flex;justify-content:space-between;align-items:center;margin-bottom:22px}.head h2{margin:0;font-size:23px}.count{font-size:12px;color:var(--muted)}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.card{background:#fff;border:1px solid var(--border);border-radius:14px;overflow:hidden;cursor:pointer;transition:.2s}.card:hover{transform:translateY(-3px);box-shadow:0 12px 26px rgba(10,30,50,.11)}
+.img{height:170px;background:linear-gradient(135deg,#0A2233,#173b52);background-size:cover;background-position:center;position:relative}.badge{position:absolute;right:12px;top:12px;background:var(--orange);color:#fff;padding:4px 9px;border-radius:7px;font-size:10px;font-weight:700}
+.body{padding:16px}.body h3{font-size:16px;margin:0 0 9px}.need{font-size:12px;color:#4f5d66;line-height:1.8;min-height:43px}.meta{border-top:1px solid #edf1f4;margin-top:13px;padding-top:10px;color:var(--muted);font-size:11px}.meta i{color:var(--orange)}
+.empty{padding:35px;text-align:center;background:#fff;border:1px dashed #d5dde2;border-radius:12px;color:#7d8790}
+.modal{position:fixed;inset:0;background:rgba(3,15,25,.7);display:none;align-items:center;justify-content:center;padding:20px;z-index:10}.modal.show{display:flex}.box{background:#fff;border-radius:15px;width:min(650px,100%);max-height:90vh;overflow:auto;padding:24px;position:relative}.close{position:absolute;left:16px;top:12px;border:0;background:none;font-size:24px;cursor:pointer;color:#6d777e}.detail-img{width:100%;max-height:300px;object-fit:cover;border-radius:11px;display:none;margin-bottom:15px}.field{padding:12px 0;border-bottom:1px solid #edf1f4}.field small{display:block;color:#89939b;font-size:10px;margin-bottom:4px}.field strong,.field p{font-size:13px;line-height:1.9;margin:0}.request{width:100%;border:0;background:var(--orange);color:#fff;padding:12px;border-radius:9px;font-family:inherit;font-weight:700;margin-top:17px;cursor:pointer}.request:disabled{opacity:.6}
+@media(max-width:800px){.grid{grid-template-columns:1fr 1fr}.filters{grid-template-columns:1fr 1fr}.filters input{grid-column:1/-1}}
+@media(max-width:560px){.grid{grid-template-columns:1fr}.filters{grid-template-columns:1fr}.hero h1{font-size:27px}}
+</style>
+</head>
+<body>
+<header class="header"><div class="container inner">
+<a class="logo" href="/"><img src="logo.png" alt="SANAT MARKET"></a>
+<a class="back" href="/"><i class="fa-solid fa-arrow-right"></i> بازگشت به صفحه اصلی</a>
+</div></header>
+<section class="hero"><div class="container">
+<h1>همه پروژه‌های فعال</h1><p>پروژه‌هایی که توسط ادمین تأیید شده‌اند و آماده دریافت درخواست پیمانکار هستند.</p>
+<form class="filters" id="filterForm">
+<input id="q" placeholder="جستجو در عنوان، نیاز یا جزئیات پروژه">
+<select id="city"><option value="">همه شهرها</option></select>
+<button>جستجو</button>
+</form>
+</div></section>
+<section class="section"><div class="container">
+<div class="head"><h2>پروژه‌های فعال</h2><span class="count" id="count">۰ پروژه</span></div>
+<div class="grid" id="grid"></div>
+</div></section>
+
+<div class="modal" id="detailModal">
+<div class="box">
+<button class="close" onclick="closeDetail()">×</button>
+<img id="detailImg" class="detail-img" alt="تصویر پروژه">
+<h2 id="detailTitle"></h2>
+<div class="field"><small>نیاز پروژه</small><strong id="detailNeed"></strong></div>
+<div class="field"><small>شهر</small><strong id="detailCity"></strong></div>
+<div class="field"><small>جزئیات پروژه</small><p id="detailText"></p></div>
+<p id="detailMsg" style="font-size:12px"></p>
+<button id="requestBtn" class="request" style="display:none">ارسال درخواست همکاری</button>
+</div></div>
+<script>
+const API=((location.protocol.startsWith('http')&&location.port==='8000')?'':'http://127.0.0.1:8000');
+const TOKEN_KEY='sanat_token';
+const $=id=>document.getElementById(id);
+function setText(id,value){const el=$(id);if(el)el.textContent=value??''}
+function token(){try{return localStorage.getItem(TOKEN_KEY)}catch(_){return null}}
+async function api(path,opt={}){
+ const headers={'Content-Type':'application/json',...(opt.headers||{})};const t=token();if(t)headers.Authorization='Bearer '+t;
+ const r=await fetch(API+path,{...opt,headers});const d=await r.json().catch(()=>({}));
+ if(!r.ok)throw new Error(typeof d.detail==='string'?d.detail:'خطایی رخ داد.');return d;
+}
+const cities=['آذربایجان شرقی','آذربایجان غربی','اردبیل','اصفهان','البرز','ایلام','بوشهر','تهران','چهارمحال و بختیاری','خراسان جنوبی','خراسان رضوی','خراسان شمالی','خوزستان','زنجان','سمنان','سیستان و بلوچستان','فارس','قزوین','قم','کردستان','کرمان','کرمانشاه','کهگیلویه و بویراحمد','گلستان','گیلان','لرستان','مازندران','مرکزی','هرمزگان','همدان','یزد'];
+cities.forEach(x=>{const o=document.createElement('option');o.value=o.textContent=x;$('city').appendChild(o)});
+function escText(v){return String(v??'')}
+async function load(){
+ const params=new URLSearchParams();if($('q').value.trim())params.set('q',$('q').value.trim());if($('city').value)params.set('city',$('city').value);
+ const d=await api('/api/projects?'+params);const arr=d.projects||[];setText('count',arr.length+' پروژه');
+ const grid=$('grid');grid.replaceChildren();
+ if(!arr.length){grid.innerHTML='<div class="empty">پروژه فعالی با این فیلتر پیدا نشد.</div>';return}
+ arr.forEach(p=>{
+  const c=document.createElement('article');c.className='card';c.onclick=()=>openDetail(p);
+  const im=document.createElement('div');im.className='img';if(p.image_url)im.style.backgroundImage=`url("${p.image_url}")`;
+  const b=document.createElement('span');b.className='badge';b.textContent='فعال';im.appendChild(b);
+  const body=document.createElement('div');body.className='body';
+  const h=document.createElement('h3');h.textContent=p.title;
+  const n=document.createElement('div');n.className='need';n.textContent='نیاز پروژه: '+p.need;
+  const m=document.createElement('div');m.className='meta';m.innerHTML='<i class="fa-solid fa-location-dot"></i> '+escText(p.city);
+  body.append(h,n,m);c.append(im,body);grid.appendChild(c);
+ });
+}
+async function openDetail(p){
+ setText('detailTitle',p.title);setText('detailNeed',p.need);setText('detailCity',p.city);setText('detailText',p.details||'توضیحی ثبت نشده است.');setText('detailMsg','');
+ const img=$('detailImg');if(p.image_url){img.src=p.image_url;img.style.display='block'}else{img.style.display='none'}
+ const btn=$('requestBtn');btn.style.display='none';btn.onclick=null;
+ try{
+  const me=await api('/api/me');
+  if(me.user.status==='approved'&&me.user.role==='contractor'){
+   btn.style.display='block';btn.onclick=async()=>{btn.disabled=true;try{const r=await api('/api/projects/'+encodeURIComponent(p.id)+'/request',{method:'POST',body:JSON.stringify({})});setText('detailMsg',r.message)}catch(e){setText('detailMsg',e.message)}finally{btn.disabled=false}};
+  }
+ }catch(_){}
+ $('detailModal').classList.add('show');
+}
+function closeDetail(){$('detailModal').classList.remove('show')}
+$('filterForm').addEventListener('submit',e=>{e.preventDefault();load()});
+$('detailModal').addEventListener('click',e=>{if(e.target===$('detailModal'))closeDetail()});
+load();
+</script>
+</body></html>
