@@ -1,6 +1,7 @@
 import os
 import json
 import mimetypes
+import time
 import uuid
 from pathlib import Path
 from urllib.request import Request, urlopen
@@ -33,11 +34,16 @@ def _keyboard(kind: str, item_id: str):
             {"text": "✅ تأیید پروفایل", "callback_data": f"profile_approve:{item_id}"},
             {"text": "❌ رد ویرایش", "callback_data": f"profile_reject:{item_id}"},
         ]]}
+    if kind == "chat_message":
+        return {"inline_keyboard": [[
+            {"text": "✅ تأیید و ارسال پیام", "callback_data": f"chat_approve:{item_id}"},
+            {"text": "❌ رد امنیتی", "callback_data": f"chat_reject:{item_id}"},
+        ]]}
     return None
 
 
-def _post_form(token, method, fields, files=None):
-    """ارسال multipart/form-data به Telegram Bot API با هندل خطا."""
+def _post_form(token, method, fields, files=None, timeout=300, retries=3):
+    """ارسال multipart/form-data به Telegram Bot API با retry و timeout بالاتر."""
     boundary = uuid.uuid4().hex
     body = bytearray()
 
@@ -62,23 +68,33 @@ def _post_form(token, method, fields, files=None):
     body.extend(f"--{boundary}--\r\n".encode())
 
     url = f"https://api.telegram.org/bot{token}/{method}"
-    req = Request(
-        url,
-        data=bytes(body),
-        headers={"Content-Type": f"multipart/form-data; boundary={boundary}"},
-        method="POST",
-    )
+    data = bytes(body)
+    headers = {"Content-Type": f"multipart/form-data; boundary={boundary}"}
 
-    try:
-        with urlopen(req, timeout=120) as response:
-            return response.read()
-    except HTTPError as e:
-        detail = e.read().decode("utf-8", errors="replace")
-        raise RuntimeError(
-            f"Telegram API error on '{method}' ({e.code}): {detail}"
-        ) from e
-    except URLError as e:
-        raise RuntimeError(f"Network error calling Telegram '{method}': {e}") from e
+    last_err = None
+    for attempt in range(1, retries + 1):
+        try:
+            req = Request(url, data=data, headers=headers, method="POST")
+            with urlopen(req, timeout=timeout) as response:
+                return response.read()
+        except HTTPError as e:
+            detail = e.read().decode("utf-8", errors="replace")
+            # خطاهای ۴xx معمولاً retry نمی‌خواهند (مگر 429)
+            if e.code == 429 or e.code >= 500:
+                last_err = RuntimeError(
+                    f"Telegram API error on '{method}' ({e.code}): {detail}"
+                )
+                time.sleep(min(2 ** attempt, 8))
+                continue
+            raise RuntimeError(
+                f"Telegram API error on '{method}' ({e.code}): {detail}"
+            ) from e
+        except (URLError, TimeoutError, OSError) as e:
+            last_err = RuntimeError(f"Network/timeout error calling Telegram '{method}' (try {attempt}/{retries}): {e}")
+            time.sleep(min(2 ** attempt, 8))
+            continue
+
+    raise last_err or RuntimeError(f"Failed to call Telegram '{method}' after {retries} attempts")
 
 
 def _send_message(token, chat_id, text, keyboard=None):
@@ -90,7 +106,7 @@ def _send_message(token, chat_id, text, keyboard=None):
         fields["reply_markup"] = json.dumps(
             keyboard, ensure_ascii=False, separators=(",", ":")
         )
-    _post_form(token, "sendMessage", fields)
+    _post_form(token, "sendMessage", fields, timeout=60, retries=2)
 
 
 def _send_attachment(token, chat_id, item):
@@ -102,23 +118,26 @@ def _send_attachment(token, chat_id, item):
     try:
         path.relative_to(BASE_DIR.resolve())
     except ValueError:
-        # مسیر خارج از BASE_DIR — نادیده بگیر
         return
 
     if not path.is_file():
         return
 
     content = path.read_bytes()
+    # فایل‌های خیلی بزرگ (>9.5MB) ممکن است تایم‌اوت یا رد شوند
+    if len(content) > 9_500_000:
+        print(f"[telegram] skip oversized file: {path.name} ({len(content)} bytes)")
+        return
+
     caption = (item.get("caption") or "")[:1024]
     mime = mimetypes.guess_type(path.name)[0] or "application/octet-stream"
 
-    # برای پایداری بیشتر، همه‌چیز رو با sendDocument بفرست
-    # (sendPhoto روی بعضی فرمت‌ها/ابعاد خطا می‌ده)
+    # تصاویر کوچک‌تر با sendPhoto پایدارترند؛ بقیه با sendDocument
     if mime.startswith("image/") and mime in (
         "image/jpeg",
         "image/png",
         "image/webp",
-    ):
+    ) and len(content) < 5_000_000:
         method = "sendPhoto"
         field_name = "photo"
     else:
@@ -130,6 +149,8 @@ def _send_attachment(token, chat_id, item):
         method,
         {"chat_id": str(chat_id), "caption": caption},
         {field_name: (path.name, mime, content)},
+        timeout=300,
+        retries=3,
     )
 
 
@@ -141,18 +162,18 @@ def send_approval(text: str, chat_id: int, item_id: str, kind: str, attachments=
     keyboard = _keyboard(kind, item_id)
     attachments = attachments or []
 
-    # برای registration: اول فایل‌ها، بعد متن + دکمه‌ها
-    if kind == "registration":
-        for item in attachments:
-            try:
-                _send_attachment(token, chat_id, item)
-            except Exception as e:
-                print(f"[telegram] attachment failed: {e}")
+    # ابتدا همه فایل‌ها (با فاصله کوتاه بین هر کدام تا rate-limit نخوریم)
+    # سپس پیام اصلی همراه دکمه‌های تأیید/رد ارسال می‌شود.
+    for i, item in enumerate(attachments):
+        try:
+            _send_attachment(token, chat_id, item)
+            if i < len(attachments) - 1:
+                time.sleep(0.4)
+        except Exception as e:
+            print(f"[telegram] attachment failed ({item.get('path')}): {e}")
+
+    try:
         _send_message(token, chat_id, text, keyboard)
-    else:
-        _send_message(token, chat_id, text, keyboard)
-        for item in attachments:
-            try:
-                _send_attachment(token, chat_id, item)
-            except Exception as e:
-                print(f"[telegram] attachment failed: {e}")
+    except Exception as e:
+        print(f"[telegram] message failed: {e}")
+        raise

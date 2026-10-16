@@ -1,12 +1,890 @@
-<!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>فضای پروژه‌ها | صنعت مارکت</title><link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"><style>
-:root{--navy:#061522;--orange:#ff6a00;--bg:#f2f5f7;--line:#e1e7eb;--muted:#697780}*{box-sizing:border-box}body{margin:0;background:var(--bg);font-family:Vazirmatn,sans-serif;color:#172733}.top{background:var(--navy);color:white;padding:18px max(20px,calc((100% - 1180px)/2));display:flex;justify-content:space-between;align-items:center;gap:14px}.top a{color:white;text-decoration:none}.wrap{max-width:1180px;margin:28px auto;padding:0 18px}.layout{display:grid;grid-template-columns:270px 1fr;gap:20px}.side,.main{background:white;border:1px solid var(--line);border-radius:16px;padding:20px;min-width:0}.side button,.btn{font:inherit;border:0;border-radius:9px;padding:10px 13px;cursor:pointer}.side button{display:block;width:100%;text-align:right;background:white;margin:5px 0;color:#243746}.side button.active,.btn{background:var(--orange);color:white}.btn.secondary{background:#edf1f4;color:#263744}.btn.danger{background:#b92d36}.head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}.muted{color:var(--muted);font-size:13px}.list{display:grid;gap:12px;margin-top:18px}.item{border:1px solid var(--line);border-radius:12px;padding:15px;display:flex;justify-content:space-between;align-items:center;gap:12px}.item h3{margin:0 0 6px;font-size:16px}.item p{margin:0;color:var(--muted);font-size:13px;line-height:1.8}.actions{display:flex;gap:7px;flex-wrap:wrap}.pill{display:inline-block;padding:4px 9px;border-radius:20px;background:#fff0e4;color:#b64c00;font-size:11px}.empty{padding:35px;text-align:center;border:1px dashed var(--line);border-radius:12px;color:var(--muted)}.panel{margin-top:16px;padding:16px;border:1px solid var(--line);border-radius:12px}.profile{background:#f8fafb;border-radius:10px;padding:14px;margin:12px 0;line-height:1.9}.profileModal{position:fixed;inset:0;background:rgba(3,15,25,.68);display:none;align-items:center;justify-content:center;padding:18px;z-index:50}.profileModal.show{display:flex}.profileCard{width:min(560px,100%);max-height:88vh;overflow:auto;background:#fff;border-radius:18px;padding:24px;box-shadow:0 24px 80px #0015;position:relative}.profileClose{position:absolute;left:14px;top:12px;border:0;border-radius:9px;background:#edf1f4;padding:5px 12px;font-size:22px;cursor:pointer}.profileGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px}.profileField{background:#f6f8fa;border:1px solid #e8edf0;border-radius:11px;padding:12px;overflow-wrap:anywhere}.profileField small{display:block;color:#697780;margin-bottom:5px}.profileField p{margin:0;line-height:1.9;white-space:pre-wrap}.profileWide{grid-column:1/-1}@media(max-width:520px){.profileGrid{grid-template-columns:1fr}.profileWide{grid-column:auto}}.messages{height:300px;overflow:auto;background:#f8fafb;border:1px solid var(--line);border-radius:10px;padding:12px;margin:12px 0}.msg{padding:9px 12px;border-radius:10px;background:white;margin:8px 0;max-width:85%;white-space:pre-wrap;overflow-wrap:anywhere}.msg.mine{margin-right:auto;background:#fff0e4}.compose{display:flex;gap:8px}.compose input{flex:1;min-width:0;border:1px solid var(--line);border-radius:9px;padding:12px;font:inherit}.notice{background:#fff7e9;border:1px solid #ffe0b5;padding:12px;border-radius:10px;font-size:12px;line-height:1.8}.hidden{display:none!important}@media(max-width:750px){.layout{grid-template-columns:1fr}.side{display:flex;gap:6px;overflow:auto;padding:10px}.side button{min-width:130px;text-align:center}.item{align-items:flex-start;flex-direction:column}.top{padding:15px 18px}}
-</style></head><body><header class="top"><strong>صنعت مارکت | فضای کاری</strong><a href="/">بازگشت به سایت ←</a></header><div class="wrap"><div class="layout"><aside class="side"><button id="navMain" class="active" onclick="showTab('main')">پروژه‌ها و درخواست‌ها</button><button id="navChat" onclick="showTab('chat')">گفتگوهای فعال</button></aside><main class="main"><div class="head"><div><h2 id="title" style="margin:0 0 5px">فضای کاری</h2><div id="subtitle" class="muted">در حال بارگذاری...</div></div><button class="btn secondary" onclick="load()">بروزرسانی</button></div><div id="notice" class="notice" style="margin-top:16px">برای حفظ حریم خصوصی، شماره تماس، ایمیل، شناسه‌های شبکه‌های اجتماعی و لینک‌ها در گفتگو مجاز نیستند. اطلاعات تماس طرفین برای یکدیگر نمایش داده نمی‌شود.</div><section id="mainTab"><div id="list" class="list"></div></section><section id="chatTab" class="hidden"><div id="chatList" class="list"></div><div id="chatArea" class="panel hidden"></div></section><div id="status" class="muted" style="margin-top:14px"></div></main></div></div><div id="profileModal" class="profileModal" onclick="if(event.target===this)closeProfile()"><section class="profileCard" role="dialog" aria-modal="true" aria-labelledby="profileName"><button class="profileClose" onclick="closeProfile()" aria-label="بستن">×</button><span class="pill">پروفایل حرفه‌ای</span><h2 id="profileName" style="margin:14px 0 4px">پروفایل</h2><div class="muted">اطلاعات تماس برای حفظ حریم خصوصی نمایش داده نمی‌شود.</div><div class="profileGrid"><div class="profileField"><small>نوع حساب</small><p id="pfRole">—</p></div><div class="profileField"><small>نام شرکت</small><p id="pfCompany">—</p></div><div class="profileField"><small>شهر فعالیت</small><p id="pfCity">—</p></div><div class="profileField"><small>حوزه فعالیت</small><p id="pfField">—</p></div><div class="profileField profileWide"><small>معرفی</small><p id="pfDescription">—</p></div><div class="profileField profileWide"><small>سابقه کاری</small><p id="pfHistory">—</p></div><div class="profileField profileWide"><small>نمونه‌کارها</small><p id="pfSamples">—</p></div></div></section></div><script>
-const API='',KEY='sanat_token',$=id=>document.getElementById(id);let role='',currentProject='',currentRequest='',chatPoll=null;function token(){return localStorage.getItem(KEY)}async function api(path,opt={}){let h={'Content-Type':'application/json',...(opt.headers||{})};if(token())h.Authorization='Bearer '+token();let r=await fetch(API+path,{...opt,headers:h});let d=await r.json().catch(()=>({}));if(!r.ok)throw Error(typeof d.detail==='string'?d.detail:'خطایی رخ داد');return d}function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}function status(s){return ({pending:'در انتظار بررسی',accepted:'انتخاب شده',rejected:'انتخاب نشده',active:'فعال',approved:'تأیید شده'})[s]||s}function msg(s){const el=$('status');if(el)el.textContent=s||''}function setText(id,value){const el=$(id);if(el)el.textContent=value||'ثبت نشده'}function showTab(t){$('mainTab').classList.toggle('hidden',t!=='main');$('chatTab').classList.toggle('hidden',t!=='chat');$('navMain').classList.toggle('active',t==='main');$('navChat').classList.toggle('active',t==='chat');if(t==='chat')loadChats()}
-async function load(){try{let d=await api('/api/me');role=d.user.role;if(d.user.status!=='approved')throw Error('حساب شما هنوز تأیید نشده است.');if(role==='employer'){ $('title').textContent='پروژه‌های من';$('subtitle').textContent='پروژه را انتخاب کنید تا درخواست‌ها و پروفایل‌های بدون اطلاعات تماس را ببینید.';await loadEmployer()}else if(role==='contractor'){$('title').textContent='پروژه‌های درخواست‌شده';$('subtitle').textContent='حداکثر ۵ درخواست فعال؛ با حذف درخواست، ظرفیت آزاد می‌شود.';await loadContractor()}else throw Error('این بخش برای نقش حساب شما فعال نیست.')}catch(e){$('list').innerHTML='<div class="empty">'+esc(e.message)+'<br><br>ابتدا وارد حساب کاربری خود شوید.</div>'}}
-async function loadEmployer(){let d=await api('/api/employer/my-projects');$('list').innerHTML='';if(!d.projects.length){$('list').innerHTML='<div class="empty">هنوز پروژه‌ای ثبت نکرده‌اید.</div>';return}d.projects.forEach(p=>{let el=document.createElement('div');el.className='item';el.innerHTML=`<div><h3>${esc(p.title)}</h3><p>${esc(p.need)} · ${esc(p.city)}<br>${p.request_count} درخواست · وضعیت پروژه: ${esc(status(p.status))}</p></div><div class="actions"><button class="btn" onclick="openRequests('${esc(p.id)}')">دیدن درخواست‌ها</button></div>`;$('list').appendChild(el)})}
-async function openRequests(id){currentProject=id;try{let d=await api('/api/employer/projects/'+encodeURIComponent(id)+'/requests');$('list').innerHTML=`<div class="head"><h3>${esc(d.project.title)} — درخواست‌ها</h3><button class="btn secondary" onclick="loadEmployer()">بازگشت</button></div>`;if(!d.requests.length){$('list').innerHTML+='<div class="empty">هنوز درخواستی ثبت نشده است.</div>';return}d.requests.forEach(r=>{let el=document.createElement('div');el.className='item';el.innerHTML=`<div><h3>${esc(r.company_name||((r.first_name||'')+' '+(r.last_name||'')))} <span class="pill">${esc(status(r.status))}</span></h3><p>حوزه: ${esc(r.activity_field||'ثبت نشده')} · شهر فعالیت: ${esc(r.activity_city||'ثبت نشده')}<br>زمان پیشنهادی: ${esc(r.proposed_duration)} · پیشنهاد قیمت: ${esc(r.proposed_price)}<br>تاریخ درخواست: ${esc(r.created_at)}<br>${esc((r.description||'').slice(0,240))}</p></div><div class="actions"><button class="btn secondary" onclick="profile('${esc(r.request_id)}')">پروفایل</button>${r.status==='pending'?`<button class="btn" onclick="choose('${esc(r.request_id)}')">انتخاب و شروع گفتگو</button>`:''}${r.status==='accepted'?`<button class="btn" onclick="openChat('${esc(r.request_id)}')">گفتگو</button>`:''}</div>`;$('list').appendChild(el)})}catch(e){msg(e.message)}}
-async function loadContractor(){let d=await api('/api/contractor/my-requests');$('subtitle').textContent=`${d.active_count} از ${d.active_limit} درخواست فعال`;$('list').innerHTML='';if(!d.requests.length){$('list').innerHTML='<div class="empty">هنوز برای پروژه‌ای درخواست نداده‌اید. از بخش پروژه‌های فعال درخواست ثبت کنید.</div>';return}d.requests.forEach(r=>{let el=document.createElement('div');el.className='item';el.innerHTML=`<div><h3>${esc(r.title)} <span class="pill">${esc(status(r.status))}</span></h3><p>${esc(r.need)} · ${esc(r.city)}<br>مدت پیشنهادی: ${esc(r.proposed_duration)} · قیمت: ${esc(r.proposed_price)}<br>ثبت: ${esc(r.created_at)}</p></div><div class="actions">${r.status==='accepted'?`<button class="btn" onclick="openChat('${esc(r.request_id)}')">گفتگو با کارفرما</button>`:''}${r.status!=='accepted'?`<button class="btn danger" onclick="removeRequest('${esc(r.request_id)}')">حذف درخواست</button>`:''}</div>`;$('list').appendChild(el)})}
-async function removeRequest(id){if(!confirm('درخواست حذف شود؟ ظرفیت درخواست فعال شما آزاد خواهد شد.'))return;try{let d=await api('/api/project-requests/'+encodeURIComponent(id),{method:'DELETE'});msg(d.message);loadContractor()}catch(e){msg(e.message)}}async function choose(id){if(!confirm('این پیمانکار انتخاب شود؟ پس از انتخاب، درخواست‌های دیگر همین پروژه بسته می‌شوند و گفتگو فعال می‌شود.'))return;try{let d=await api('/api/project-requests/'+encodeURIComponent(id)+'/choose',{method:'POST',body:'{}'});msg(d.message);openRequests(currentProject)}catch(e){msg(e.message)}}async function profile(id){try{let d=await api('/api/project-requests/'+encodeURIComponent(id)+'/profile');let p=d.profile||{};setText('profileName',p.company_name||[p.first_name,p.last_name].filter(Boolean).join(' ')||'پروفایل پیمانکار');setText('pfRole',p.role==='contractor'?'پیمانکار':'کارفرما');setText('pfCompany',p.company_name);setText('pfCity',p.activity_city);setText('pfField',p.activity_field);setText('pfDescription',p.description);setText('pfHistory',p.work_history);setText('pfSamples',p.project_samples);$('profileModal')?.classList.add('show')}catch(e){msg(e.message)}}function closeProfile(){$('profileModal')?.classList.remove('show')}document.addEventListener('keydown',e=>{if(e.key==='Escape')closeProfile()})
-async function loadChats(){try{let d=role==='employer'?await api('/api/employer/my-projects'):await api('/api/contractor/my-requests');$('chatList').innerHTML='';let ids=[];if(role==='employer'){for(let p of d.projects){let x=await api('/api/employer/projects/'+encodeURIComponent(p.id)+'/requests');x.requests.filter(r=>r.status==='accepted').forEach(r=>ids.push({id:r.request_id,title:p.title,other:r.company_name||r.first_name+' '+r.last_name}))}}else d.requests.filter(r=>r.status==='accepted').forEach(r=>ids.push({id:r.request_id,title:r.title,other:'کارفرمای پروژه'}));if(!ids.length){$('chatList').innerHTML='<div class="empty">گفتگوی فعالی ندارید. گفتگو پس از انتخاب پیمانکار توسط کارفرما فعال می‌شود.</div>';return}ids.forEach(x=>{let el=document.createElement('div');el.className='item';el.innerHTML=`<div><h3>${esc(x.title)}</h3><p>${esc(x.other)}</p></div><button class="btn" onclick="openChat('${esc(x.id)}')">باز کردن گفتگو</button>`;$('chatList').appendChild(el)})}catch(e){msg(e.message)}}
-async function openChat(id){currentRequest=id;showTab('chat');$('chatArea').classList.remove('hidden');await refreshMessages();if(chatPoll)clearInterval(chatPoll);chatPoll=setInterval(refreshMessages,5000)}async function refreshMessages(){if(!currentRequest)return;try{let d=await api('/api/project-requests/'+encodeURIComponent(currentRequest)+'/messages');let a=$('chatArea');if(!$('messages')){a.innerHTML=`<h3 style="margin-top:0">گفتگو درباره پروژه</h3><div class="notice">برای امنیت هر دو طرف، ارسال شماره، ایمیل، لینک یا شناسه شبکه اجتماعی مسدود می‌شود. سامانه نمی‌تواند تمام روش‌های دور زدن این محدودیت را تضمین کند؛ پیام‌های مشکوک را گزارش کنید.</div><div class="messages" id="messages"></div><form class="compose" id="compose"><input id="body" maxlength="1500" autocomplete="off" placeholder="پیام خود را بنویسید..." required><button class="btn">ارسال</button></form>`;$('compose').onsubmit=async e=>{e.preventDefault();let body=$('body').value;try{await api('/api/project-requests/'+encodeURIComponent(currentRequest)+'/messages',{method:'POST',body:JSON.stringify({body})});$('body').value='';await refreshMessages()}catch(err){msg(err.message)}}}let box=$('messages');let old=box.scrollHeight-box.scrollTop-box.clientHeight<60;box.replaceChildren();d.messages.forEach(m=>{let el=document.createElement('div');el.className='msg'+(m.sender_id===window.myUserId?' mine':'');el.textContent=m.body+'\n'+new Date(m.created_at).toLocaleString('fa-IR');box.appendChild(el)});if(old)box.scrollTop=box.scrollHeight}catch(e){msg(e.message)}}
-(async()=>{try{let d=await api('/api/me');window.myUserId=d.user.id}catch(_){}await load()})();</script></body></html>
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>فضای کاری | صنعت مارکت</title>
+<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+<style>
+:root{
+  --navy:#061522;
+  --navy2:#0A2233;
+  --navy3:#0E2A3D;
+  --orange:#FF6A00;
+  --orange2:#F57C00;
+  --bg:#F0F4F7;
+  --card:#ffffff;
+  --line:#E2E8ED;
+  --text:#142433;
+  --muted:#6B7780;
+  --success:#0d9f6e;
+  --danger:#c43c3c;
+  --radius:16px;
+  --shadow:0 8px 30px rgba(10,30,50,.08);
+  --shadow-hover:0 14px 40px rgba(10,30,50,.14);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  font-family:'Vazirmatn',system-ui,sans-serif;
+  background:radial-gradient(ellipse at 90% -10%,rgba(255,106,0,.07) 0,transparent 40%),
+             radial-gradient(ellipse at 10% 100%,rgba(10,34,51,.04) 0,transparent 35%),
+             var(--bg);
+  color:var(--text);
+  min-height:100vh;
+  -webkit-font-smoothing:antialiased;
+}
+a{text-decoration:none;color:inherit}
+button{font-family:inherit;cursor:pointer;border:none;background:none}
+img{max-width:100%;display:block}
+
+/* ===== TOP BAR ===== */
+.topbar{
+  background:linear-gradient(135deg,var(--navy) 0%,var(--navy2) 100%);
+  color:#fff;
+  padding:0 max(20px,calc((100% - 1200px)/2));
+  height:68px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+  box-shadow:0 4px 24px rgba(6,21,34,.35);
+  border-bottom:3px solid var(--orange);
+  position:sticky;top:0;z-index:40;
+}
+.topbar-brand{
+  display:flex;align-items:center;gap:12px;
+}
+.topbar-brand .mark{
+  width:38px;height:38px;border-radius:10px;
+  background:linear-gradient(135deg,var(--orange),var(--orange2));
+  display:flex;align-items:center;justify-content:center;
+  font-size:16px;color:#fff;
+  box-shadow:0 4px 12px rgba(255,106,0,.35);
+}
+.topbar-brand strong{font-size:15px;font-weight:700;letter-spacing:.3px}
+.topbar-brand span{display:block;font-size:11px;color:#94a8b5;font-weight:400;margin-top:1px}
+.topbar-links{display:flex;align-items:center;gap:10px}
+.topbar-links a,.topbar-links button{
+  color:#c5d2da;font-size:13px;font-weight:500;
+  padding:8px 14px;border-radius:9px;
+  display:inline-flex;align-items:center;gap:7px;
+  transition:.18s;
+}
+.topbar-links a:hover,.topbar-links button:hover{background:rgba(255,255,255,.08);color:#fff}
+
+/* ===== LAYOUT ===== */
+.wrap{max-width:1200px;margin:0 auto;padding:28px 18px 60px}
+.layout{display:grid;grid-template-columns:250px 1fr;gap:22px;align-items:start}
+
+/* ===== SIDEBAR ===== */
+.sidebar{
+  background:var(--card);
+  border:1px solid var(--line);
+  border-radius:var(--radius);
+  padding:14px;
+  box-shadow:var(--shadow);
+  position:sticky;top:90px;
+}
+.nav-btn{
+  display:flex;align-items:center;gap:11px;
+  width:100%;text-align:right;
+  padding:13px 14px;border-radius:12px;
+  color:var(--text);font-size:14px;font-weight:600;
+  margin-bottom:6px;transition:.18s;
+  border:1px solid transparent;
+}
+.nav-btn i{width:20px;text-align:center;color:var(--muted);font-size:15px;transition:.18s}
+.nav-btn:hover{background:#fff7f0;border-color:#ffe0c2}
+.nav-btn:hover i{color:var(--orange)}
+.nav-btn.active{
+  background:linear-gradient(135deg,rgba(255,106,0,.12),rgba(255,106,0,.06));
+  border-color:rgba(255,106,0,.25);
+  color:var(--orange);
+  box-shadow:0 4px 14px rgba(255,106,0,.12);
+}
+.nav-btn.active i{color:var(--orange)}
+.sidebar-hint{
+  margin-top:18px;padding:14px;
+  background:linear-gradient(145deg,#f8fafb,#f0f4f7);
+  border-radius:12px;border:1px dashed var(--line);
+  font-size:12px;color:var(--muted);line-height:1.85;
+}
+.sidebar-hint i{color:var(--orange);margin-left:4px}
+
+/* ===== MAIN ===== */
+.main{
+  background:var(--card);
+  border:1px solid var(--line);
+  border-radius:var(--radius);
+  padding:26px;
+  box-shadow:var(--shadow);
+  min-width:0;
+}
+.page-head{
+  display:flex;justify-content:space-between;align-items:flex-start;
+  gap:14px;flex-wrap:wrap;margin-bottom:22px;
+}
+.page-head h1{font-size:22px;font-weight:800;margin:0 0 4px}
+.page-head .sub{font-size:13px;color:var(--muted)}
+.btn{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:10px 18px;border-radius:10px;
+  font-size:13.5px;font-weight:700;
+  transition:.18s;white-space:nowrap;
+}
+.btn-primary{
+  background:linear-gradient(135deg,var(--orange),var(--orange2));
+  color:#fff;box-shadow:0 4px 14px rgba(255,106,0,.28);
+}
+.btn-primary:hover{filter:brightness(1.06);transform:translateY(-1px);box-shadow:0 6px 18px rgba(255,106,0,.38)}
+.btn-secondary{
+  background:#eef2f5;color:#2a3a48;
+}
+.btn-secondary:hover{background:#e4eaf0}
+.btn-danger{
+  background:linear-gradient(135deg,#d44545,#b92d36);
+  color:#fff;box-shadow:0 4px 12px rgba(185,45,54,.25);
+}
+.btn-danger:hover{filter:brightness(1.05)}
+.btn-ghost{
+  background:transparent;color:var(--muted);
+  border:1px solid var(--line);
+}
+.btn-ghost:hover{background:#f5f7f9;color:var(--text)}
+.btn-sm{padding:7px 13px;font-size:12.5px;border-radius:8px}
+
+/* ===== NOTICE ===== */
+.notice{
+  background:linear-gradient(135deg,#fff8ef,#fff3e0);
+  border:1px solid #ffe0b0;
+  border-radius:12px;
+  padding:14px 16px;
+  font-size:12.5px;line-height:1.9;color:#7a5a20;
+  margin-bottom:20px;
+  display:flex;gap:12px;align-items:flex-start;
+}
+.notice i{color:var(--orange);font-size:16px;margin-top:3px;flex-shrink:0}
+
+/* ===== CARDS / LIST ===== */
+.list{display:grid;gap:14px}
+.card{
+  background:linear-gradient(160deg,#fff 0%,#fbfcfd 100%);
+  border:1px solid var(--line);
+  border-radius:14px;
+  padding:18px 20px;
+  display:flex;justify-content:space-between;align-items:center;
+  gap:16px;
+  transition:transform .18s,box-shadow .18s,border-color .18s;
+  box-shadow:0 3px 12px rgba(10,30,50,.04);
+}
+.card:hover{
+  transform:translateY(-2px);
+  box-shadow:var(--shadow-hover);
+  border-color:#d0dce6;
+}
+.card-body{min-width:0;flex:1}
+.card-body h3{
+  font-size:15.5px;font-weight:700;margin:0 0 6px;
+  display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+}
+.card-body p{
+  margin:0;color:var(--muted);font-size:12.5px;line-height:1.85;
+}
+.card-actions{display:flex;gap:7px;flex-wrap:wrap;flex-shrink:0}
+
+/* ===== PILLS ===== */
+.pill{
+  display:inline-flex;align-items:center;gap:4px;
+  padding:3px 10px;border-radius:20px;
+  font-size:11px;font-weight:700;
+}
+.pill-pending{background:#fff3e0;color:#c46a00}
+.pill-accepted,.pill-active{background:#e6f7ef;color:#0a7a52}
+.pill-rejected{background:#fdeaea;color:#b03030}
+.pill-closed{background:#eef1f4;color:#5a6872}
+
+/* ===== EMPTY ===== */
+.empty{
+  padding:48px 24px;text-align:center;
+  border:1.5px dashed #d0d8e0;border-radius:14px;
+  color:var(--muted);background:#fafbfc;
+}
+.empty i{font-size:36px;color:#c5ced6;margin-bottom:14px;display:block}
+.empty p{font-size:14px;line-height:1.8;margin:0}
+
+/* ===== CHAT ===== */
+.chat-area{margin-top:8px}
+.chat-head{
+  display:flex;justify-content:space-between;align-items:center;
+  gap:12px;flex-wrap:wrap;margin-bottom:14px;
+}
+.chat-head h3{font-size:16px;font-weight:700;margin:0}
+.messages{
+  height:min(50vh,460px);min-height:280px;
+  overflow-y:auto;
+  background:linear-gradient(170deg,#f3f7fa 0%,#e8eef3 100%);
+  border:1px solid var(--line);
+  border-radius:14px;
+  padding:16px;
+  margin-bottom:12px;
+  scroll-behavior:smooth;
+}
+.msg{
+  padding:11px 14px;border-radius:14px;
+  background:#fff;margin:10px 0;
+  max-width:78%;
+  white-space:pre-wrap;overflow-wrap:anywhere;
+  font-size:13.5px;line-height:1.9;
+  box-shadow:0 2px 8px rgba(10,30,50,.06);
+  border:1px solid #e8eef2;
+  animation:msgIn .25s ease;
+}
+.msg.mine{
+  margin-right:auto;margin-left:0;
+  background:linear-gradient(145deg,#fff5eb,#ffeedd);
+  border-color:#ffd9b8;
+}
+.msg .time{
+  display:block;font-size:10.5px;color:var(--muted);
+  margin-top:6px;font-weight:500;
+}
+.msg.pending-local{
+  opacity:.75;border-style:dashed;
+}
+@keyframes msgIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+.compose{
+  display:flex;gap:10px;align-items:stretch;
+}
+.compose input{
+  flex:1;min-width:0;
+  border:1.5px solid var(--line);
+  border-radius:12px;
+  padding:13px 16px;
+  font:inherit;font-size:13.5px;
+  background:#fff;
+  transition:border-color .18s,box-shadow .18s;
+}
+.compose input:focus{
+  outline:none;
+  border-color:var(--orange);
+  box-shadow:0 0 0 3px rgba(255,106,0,.12);
+}
+.compose .btn{border-radius:12px;padding:0 22px}
+
+/* ===== PROFILE MODAL ===== */
+.modal-overlay{
+  position:fixed;inset:0;
+  background:rgba(3,12,22,.72);
+  backdrop-filter:blur(6px);
+  display:none;align-items:center;justify-content:center;
+  padding:20px;z-index:60;
+  animation:fadeIn .2s ease;
+}
+.modal-overlay.show{display:flex}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.modal-card{
+  width:min(580px,100%);max-height:88vh;overflow:auto;
+  background:#fff;border-radius:20px;
+  padding:28px;position:relative;
+  box-shadow:0 28px 80px rgba(0,0,0,.28);
+  animation:slideUp .28s ease;
+}
+@keyframes slideUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+.modal-close{
+  position:absolute;left:16px;top:14px;
+  width:36px;height:36px;border-radius:10px;
+  background:#eef2f5;color:#4a5a66;
+  font-size:20px;display:flex;align-items:center;justify-content:center;
+  transition:.15s;
+}
+.modal-close:hover{background:#e0e6eb;color:#1a2a35}
+.modal-badge{
+  display:inline-flex;align-items:center;gap:6px;
+  background:#fff0e4;color:#c45a00;
+  padding:5px 12px;border-radius:20px;
+  font-size:12px;font-weight:700;margin-bottom:12px;
+}
+.modal-card h2{font-size:20px;font-weight:800;margin:0 0 4px}
+.modal-sub{font-size:12.5px;color:var(--muted);margin-bottom:18px}
+.profile-grid{
+  display:grid;grid-template-columns:1fr 1fr;gap:11px;
+}
+.pf-field{
+  background:#f6f9fb;border:1px solid #e6edf2;
+  border-radius:12px;padding:13px 14px;
+  overflow-wrap:anywhere;
+}
+.pf-field.wide{grid-column:1/-1}
+.pf-field small{display:block;color:var(--muted);font-size:11px;margin-bottom:5px;font-weight:600}
+.pf-field p{margin:0;font-size:13.5px;line-height:1.85;white-space:pre-wrap}
+.portfolio-grid{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));
+  gap:10px;margin-top:10px;
+}
+.portfolio-grid img{
+  width:100%;height:120px;object-fit:cover;
+  border-radius:12px;border:1px solid #d8e2ea;
+  background:#eef2f5;transition:transform .2s;
+}
+.portfolio-grid img:hover{transform:scale(1.03)}
+
+/* ===== TOAST ===== */
+.toast{
+  position:fixed;z-index:99999;
+  top:20px;left:50%;transform:translateX(-50%);
+  width:min(92vw,480px);
+  padding:14px 20px;border-radius:14px;
+  background:linear-gradient(135deg,#0e2436,#16324a);
+  color:#fff;box-shadow:0 16px 48px rgba(0,0,0,.3);
+  text-align:center;font-weight:600;font-size:13.5px;line-height:1.8;
+  display:none;border:1px solid rgba(255,255,255,.12);
+  animation:toastIn .22s ease;
+}
+@keyframes toastIn{from{opacity:0;transform:translate(-50%,-10px)}to{opacity:1;transform:translate(-50%,0)}}
+
+/* ===== STATS BAR ===== */
+.stats-row{
+  display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px;
+}
+.stat-chip{
+  background:#f5f8fa;border:1px solid var(--line);
+  border-radius:12px;padding:10px 16px;
+  display:flex;align-items:center;gap:10px;
+  font-size:13px;font-weight:600;
+}
+.stat-chip i{color:var(--orange);font-size:15px}
+.stat-chip span{color:var(--muted);font-weight:500;font-size:12px}
+
+/* ===== RESPONSIVE ===== */
+@media(max-width:800px){
+  .layout{grid-template-columns:1fr}
+  .sidebar{
+    position:static;
+    display:flex;gap:8px;overflow-x:auto;padding:10px;
+    -webkit-overflow-scrolling:touch;
+  }
+  .nav-btn{min-width:140px;margin:0;justify-content:center;text-align:center;flex-direction:column;gap:6px;padding:12px 10px}
+  .nav-btn i{margin:0}
+  .sidebar-hint{display:none}
+  .card{flex-direction:column;align-items:flex-start}
+  .card-actions{width:100%}
+  .profile-grid{grid-template-columns:1fr}
+  .pf-field.wide{grid-column:auto}
+  .page-head h1{font-size:19px}
+  .main{padding:18px}
+}
+@media(max-width:480px){
+  .topbar{height:auto;padding:12px 16px;flex-wrap:wrap}
+  .topbar-brand strong{font-size:13px}
+  .msg{max-width:90%}
+}
+.hidden{display:none!important}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-brand">
+    <div class="mark"><i class="fa-solid fa-industry"></i></div>
+    <div>
+      <strong>صنعت مارکت</strong>
+      <span>فضای کاری پروژه‌ها</span>
+    </div>
+  </div>
+  <div class="topbar-links">
+    <a href="/projects"><i class="fa-solid fa-briefcase"></i> پروژه‌های فعال</a>
+    <a href="/"><i class="fa-solid fa-house"></i> صفحه اصلی</a>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="layout">
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <button class="nav-btn active" id="navMain" onclick="showTab('main')">
+        <i class="fa-solid fa-folder-open"></i> پروژه‌ها و درخواست‌ها
+      </button>
+      <button class="nav-btn" id="navChat" onclick="showTab('chat')">
+        <i class="fa-solid fa-comments"></i> گفتگوهای فعال
+      </button>
+      <div class="sidebar-hint">
+        <i class="fa-solid fa-shield-halved"></i>
+        برای حفظ حریم خصوصی، شماره تماس، ایمیل و لینک‌ها در گفتگو مجاز نیستند.
+      </div>
+    </aside>
+
+    <!-- MAIN -->
+    <main class="main">
+      <div class="page-head">
+        <div>
+          <h1 id="title">فضای کاری</h1>
+          <div class="sub" id="subtitle">در حال بارگذاری...</div>
+        </div>
+        <button class="btn btn-secondary" onclick="load()">
+          <i class="fa-solid fa-arrows-rotate"></i> بروزرسانی
+        </button>
+      </div>
+
+      <div class="notice" id="notice">
+        <i class="fa-solid fa-circle-info"></i>
+        <div>اطلاعات تماس طرفین برای یکدیگر نمایش داده نمی‌شود. پیام‌ها ابتدا توسط سرور و ادمین بررسی می‌شوند و پس از تأیید به طرف مقابل می‌رسند.</div>
+      </div>
+
+      <section id="mainTab">
+        <div id="statsRow" class="stats-row hidden"></div>
+        <div id="list" class="list"></div>
+      </section>
+
+      <section id="chatTab" class="hidden">
+        <div id="chatList" class="list"></div>
+        <div id="chatArea" class="chat-area hidden"></div>
+      </section>
+    </main>
+  </div>
+</div>
+
+<!-- PROFILE MODAL -->
+<div class="modal-overlay" id="profileModal" onclick="if(event.target===this)closeProfile()">
+  <section class="modal-card" role="dialog" aria-modal="true">
+    <button class="modal-close" onclick="closeProfile()" aria-label="بستن">×</button>
+    <div class="modal-badge"><i class="fa-solid fa-user-tie"></i> پروفایل حرفه‌ای</div>
+    <h2 id="profileName">پروفایل</h2>
+    <div class="modal-sub">اطلاعات تماس برای حفظ حریم خصوصی نمایش داده نمی‌شود.</div>
+    <div class="profile-grid">
+      <div class="pf-field"><small>نوع حساب</small><p id="pfRole">—</p></div>
+      <div class="pf-field"><small>نام شرکت</small><p id="pfCompany">—</p></div>
+      <div class="pf-field"><small>شهر فعالیت</small><p id="pfCity">—</p></div>
+      <div class="pf-field"><small>حوزه فعالیت</small><p id="pfField">—</p></div>
+      <div class="pf-field wide"><small>معرفی</small><p id="pfDescription">—</p></div>
+      <div class="pf-field wide"><small>سابقه کاری</small><p id="pfHistory">—</p></div>
+      <div class="pf-field wide">
+        <small>نمونه‌کارها</small>
+        <p id="pfSamples">—</p>
+        <div id="pfPortfolio" class="portfolio-grid"></div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<div class="toast" id="appToast" role="status"></div>
+
+<script>
+const API = '', KEY = 'sanat_token';
+const $ = id => document.getElementById(id);
+let role = '', currentProject = '', currentRequest = '', chatPoll = null, pendingMessages = [];
+
+function token(){ return localStorage.getItem(KEY) }
+
+async function api(path, opt = {}){
+  const h = { 'Content-Type': 'application/json', ...(opt.headers || {}) };
+  if(token()) h.Authorization = 'Bearer ' + token();
+  const r = await fetch(API + path, { ...opt, headers: h });
+  const d = await r.json().catch(() => ({}));
+  if(!r.ok) throw Error(typeof d.detail === 'string' ? d.detail : 'خطایی رخ داد');
+  return d;
+}
+
+function esc(s){
+  return String(s ?? '').replace(/[&<>"']/g, c =>
+    ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function statusLabel(s){
+  return ({
+    pending:'در انتظار بررسی',
+    accepted:'انتخاب شده',
+    rejected:'انتخاب نشده',
+    active:'فعال',
+    approved:'تأیید شده'
+  })[s] || s;
+}
+
+function statusPill(s){
+  const map = {
+    pending: 'pill-pending',
+    accepted: 'pill-accepted',
+    active: 'pill-active',
+    rejected: 'pill-rejected'
+  };
+  return `<span class="pill ${map[s]||'pill-closed'}">${esc(statusLabel(s))}</span>`;
+}
+
+function msg(s){
+  const el = $('appToast');
+  el.textContent = s || '';
+  el.style.display = 'block';
+  clearTimeout(window.__msgTimer);
+  window.__msgTimer = setTimeout(() => el.style.display = 'none', 5000);
+}
+
+function setText(id, value){
+  const el = $(id);
+  if(el) el.textContent = value || 'ثبت نشده';
+}
+
+function showTab(t){
+  $('mainTab').classList.toggle('hidden', t !== 'main');
+  $('chatTab').classList.toggle('hidden', t !== 'chat');
+  $('navMain').classList.toggle('active', t === 'main');
+  $('navChat').classList.toggle('active', t === 'chat');
+  if(t === 'chat') loadChats();
+}
+
+function emptyHTML(icon, text){
+  return `<div class="empty"><i class="fa-solid ${icon}"></i><p>${esc(text)}</p></div>`;
+}
+
+/* ===== LOAD ===== */
+async function load(){
+  try{
+    const d = await api('/api/me');
+    role = d.user.role;
+    if(d.user.status !== 'approved') throw Error('حساب شما هنوز تأیید نشده است.');
+    if(role === 'employer'){
+      $('title').textContent = 'پروژه‌های من';
+      $('subtitle').textContent = 'پروژه را انتخاب کنید تا درخواست‌ها و پروفایل‌ها را ببینید.';
+      await loadEmployer();
+    } else if(role === 'contractor'){
+      $('title').textContent = 'پروژه‌های درخواست‌شده';
+      $('subtitle').textContent = 'حداکثر ۵ درخواست فعال؛ با حذف درخواست، ظرفیت آزاد می‌شود.';
+      await loadContractor();
+    } else {
+      throw Error('این بخش برای نقش حساب شما فعال نیست.');
+    }
+  } catch(e){
+    $('statsRow').classList.add('hidden');
+    $('list').innerHTML = emptyHTML('fa-lock', e.message + '\nابتدا وارد حساب کاربری خود شوید.');
+  }
+}
+
+async function loadEmployer(){
+  const d = await api('/api/employer/my-projects');
+  const total = d.projects.length;
+  const withReq = d.projects.filter(p => p.request_count > 0).length;
+  $('statsRow').classList.remove('hidden');
+  $('statsRow').innerHTML = `
+    <div class="stat-chip"><i class="fa-solid fa-folder"></i> ${total} <span>پروژه</span></div>
+    <div class="stat-chip"><i class="fa-solid fa-inbox"></i> ${withReq} <span>دارای درخواست</span></div>
+  `;
+  $('list').innerHTML = '';
+  if(!d.projects.length){
+    $('list').innerHTML = emptyHTML('fa-folder-open', 'هنوز پروژه‌ای ثبت نکرده‌اید.');
+    return;
+  }
+  d.projects.forEach(p => {
+    const el = document.createElement('div');
+    el.className = 'card';
+    el.innerHTML = `
+      <div class="card-body">
+        <h3>${esc(p.title)} ${statusPill(p.status)}</h3>
+        <p>
+          <i class="fa-solid fa-wrench" style="color:var(--orange);margin-left:4px"></i>${esc(p.need)}
+          &nbsp;·&nbsp;
+          <i class="fa-solid fa-location-dot" style="color:var(--orange);margin-left:4px"></i>${esc(p.city)}
+          <br>
+          <i class="fa-solid fa-users" style="color:var(--orange);margin-left:4px"></i>${p.request_count} درخواست
+        </p>
+      </div>
+      <div class="card-actions">
+        <button class="btn btn-primary btn-sm" onclick="openRequests('${esc(p.id)}')">
+          <i class="fa-solid fa-eye"></i> دیدن درخواست‌ها
+        </button>
+      </div>`;
+    $('list').appendChild(el);
+  });
+}
+
+async function openRequests(id){
+  currentProject = id;
+  try{
+    const d = await api('/api/employer/projects/' + encodeURIComponent(id) + '/requests');
+    $('statsRow').classList.add('hidden');
+    $('list').innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:6px">
+        <h3 style="margin:0;font-size:16px;font-weight:700">${esc(d.project.title)} — درخواست‌ها</h3>
+        <button class="btn btn-ghost btn-sm" onclick="loadEmployer()"><i class="fa-solid fa-arrow-right"></i> بازگشت</button>
+      </div>`;
+    if(!d.requests.length){
+      $('list').innerHTML += emptyHTML('fa-inbox', 'هنوز درخواستی ثبت نشده است.');
+      return;
+    }
+    d.requests.forEach(r => {
+      const name = r.company_name || ((r.first_name || '') + ' ' + (r.last_name || ''));
+      const el = document.createElement('div');
+      el.className = 'card';
+      let actions = `<button class="btn btn-secondary btn-sm" onclick="profile('${esc(r.request_id)}')"><i class="fa-solid fa-id-card"></i> پروفایل</button>`;
+      if(r.status === 'pending'){
+        actions += `<button class="btn btn-primary btn-sm" onclick="choose('${esc(r.request_id)}')"><i class="fa-solid fa-check"></i> انتخاب و شروع گفتگو</button>`;
+      }
+      if(r.status === 'accepted' && !r.chat_closed_at){
+        actions += `<button class="btn btn-primary btn-sm" onclick="openChat('${esc(r.request_id)}')"><i class="fa-solid fa-comments"></i> گفتگو</button>`;
+      }
+      if(r.status === 'accepted' && r.chat_closed_at){
+        actions += `<span class="pill pill-closed">گفتگو بسته شده</span>`;
+      }
+      el.innerHTML = `
+        <div class="card-body">
+          <h3>${esc(name)} ${statusPill(r.status)}</h3>
+          <p>
+            حوزه: ${esc(r.activity_field || 'ثبت نشده')} · شهر: ${esc(r.activity_city || 'ثبت نشده')}<br>
+            زمان پیشنهادی: ${esc(r.proposed_duration)} · قیمت: ${esc(r.proposed_price)}<br>
+            تاریخ: ${esc(r.created_at)}<br>
+            ${esc((r.description || '').slice(0, 220))}
+          </p>
+        </div>
+        <div class="card-actions">${actions}</div>`;
+      $('list').appendChild(el);
+    });
+  } catch(e){ msg(e.message) }
+}
+
+async function loadContractor(){
+  const d = await api('/api/contractor/my-requests');
+  $('subtitle').textContent = `${d.active_count} از ${d.active_limit} درخواست فعال`;
+  $('statsRow').classList.remove('hidden');
+  $('statsRow').innerHTML = `
+    <div class="stat-chip"><i class="fa-solid fa-paper-plane"></i> ${d.active_count} <span>فعال از ${d.active_limit}</span></div>
+    <div class="stat-chip"><i class="fa-solid fa-list"></i> ${d.requests.length} <span>کل درخواست‌ها</span></div>
+  `;
+  $('list').innerHTML = '';
+  if(!d.requests.length){
+    $('list').innerHTML = emptyHTML('fa-briefcase', 'هنوز برای پروژه‌ای درخواست نداده‌اید. از بخش پروژه‌های فعال درخواست ثبت کنید.');
+    return;
+  }
+  d.requests.forEach(r => {
+    const el = document.createElement('div');
+    el.className = 'card';
+    let actions = '';
+    if(r.status === 'accepted' && !r.chat_closed_at){
+      actions += `<button class="btn btn-primary btn-sm" onclick="openChat('${esc(r.request_id)}')"><i class="fa-solid fa-comments"></i> گفتگو با کارفرما</button>`;
+    }
+    if(r.status === 'accepted' && r.chat_closed_at){
+      actions += `<span class="pill pill-closed">گفتگو بسته شده</span>`;
+    }
+    if(r.status !== 'accepted'){
+      actions += `<button class="btn btn-danger btn-sm" onclick="removeRequest('${esc(r.request_id)}')"><i class="fa-solid fa-trash"></i> حذف درخواست</button>`;
+    }
+    el.innerHTML = `
+      <div class="card-body">
+        <h3>${esc(r.title)} ${statusPill(r.status)}</h3>
+        <p>
+          ${esc(r.need)} · ${esc(r.city)}<br>
+          مدت پیشنهادی: ${esc(r.proposed_duration)} · قیمت: ${esc(r.proposed_price)}<br>
+          ثبت: ${esc(r.created_at)}
+        </p>
+      </div>
+      <div class="card-actions">${actions}</div>`;
+    $('list').appendChild(el);
+  });
+}
+
+async function removeRequest(id){
+  if(!confirm('درخواست حذف شود؟ ظرفیت درخواست فعال شما آزاد خواهد شد.')) return;
+  try{
+    const d = await api('/api/project-requests/' + encodeURIComponent(id), { method: 'DELETE' });
+    msg(d.message);
+    loadContractor();
+  } catch(e){ msg(e.message) }
+}
+
+async function choose(id){
+  if(!confirm('این پیمانکار انتخاب شود؟ پس از انتخاب، درخواست‌های دیگر همین پروژه بسته می‌شوند و گفتگو فعال می‌شود.')) return;
+  try{
+    const d = await api('/api/project-requests/' + encodeURIComponent(id) + '/choose', { method: 'POST', body: '{}' });
+    msg(d.message);
+    openRequests(currentProject);
+  } catch(e){ msg(e.message) }
+}
+
+/* ===== PROFILE ===== */
+async function profile(id){
+  try{
+    const d = await api('/api/project-requests/' + encodeURIComponent(id) + '/profile');
+    const p = d.profile || {};
+    setText('profileName', p.company_name || [p.first_name, p.last_name].filter(Boolean).join(' ') || 'پروفایل پیمانکار');
+    setText('pfRole', p.role === 'contractor' ? 'پیمانکار' : 'کارفرما');
+    setText('pfCompany', p.company_name);
+    setText('pfCity', p.activity_city);
+    setText('pfField', p.activity_field);
+    setText('pfDescription', p.description);
+    setText('pfHistory', p.work_history);
+    setText('pfSamples', p.project_samples);
+    const grid = $('pfPortfolio');
+    if(grid){
+      grid.replaceChildren();
+      (p.project_image_urls || []).forEach(url => {
+        const im = document.createElement('img');
+        im.src = url;
+        im.alt = 'نمونه‌کار تأییدشده';
+        im.loading = 'lazy';
+        grid.appendChild(im);
+      });
+      if(!grid.children.length){
+        const empty = document.createElement('div');
+        empty.className = 'muted';
+        empty.style.fontSize = '13px';
+        empty.textContent = 'هنوز تصویر نمونه‌کاری ثبت نشده است.';
+        grid.appendChild(empty);
+      }
+    }
+    $('profileModal')?.classList.add('show');
+  } catch(e){ msg(e.message) }
+}
+
+function closeProfile(){ $('profileModal')?.classList.remove('show') }
+document.addEventListener('keydown', e => { if(e.key === 'Escape') closeProfile() });
+
+/* ===== CHATS ===== */
+async function loadChats(){
+  try{
+    const d = role === 'employer'
+      ? await api('/api/employer/my-projects')
+      : await api('/api/contractor/my-requests');
+    $('chatList').innerHTML = '';
+    const ids = [];
+    if(role === 'employer'){
+      for(const p of d.projects){
+        const x = await api('/api/employer/projects/' + encodeURIComponent(p.id) + '/requests');
+        x.requests.filter(r => r.status === 'accepted' && !r.chat_closed_at)
+          .forEach(r => ids.push({
+            id: r.request_id,
+            title: p.title,
+            other: r.company_name || (r.first_name + ' ' + r.last_name)
+          }));
+      }
+    } else {
+      d.requests.filter(r => r.status === 'accepted' && !r.chat_closed_at)
+        .forEach(r => ids.push({ id: r.request_id, title: r.title, other: 'کارفرمای پروژه' }));
+    }
+    if(!ids.length){
+      $('chatList').innerHTML = emptyHTML('fa-comments', 'گفتگوی فعالی ندارید. گفتگو پس از انتخاب پیمانکار توسط کارفرما فعال می‌شود.');
+      return;
+    }
+    ids.forEach(x => {
+      const el = document.createElement('div');
+      el.className = 'card';
+      el.innerHTML = `
+        <div class="card-body">
+          <h3>${esc(x.title)}</h3>
+          <p><i class="fa-solid fa-user" style="color:var(--orange);margin-left:4px"></i>${esc(x.other)}</p>
+        </div>
+        <div class="card-actions">
+          <button class="btn btn-primary btn-sm" onclick="openChat('${esc(x.id)}')">
+            <i class="fa-solid fa-message"></i> باز کردن گفتگو
+          </button>
+        </div>`;
+      $('chatList').appendChild(el);
+    });
+  } catch(e){ msg(e.message) }
+}
+
+async function openChat(id){
+  currentRequest = id;
+  showTab('chat');
+  $('chatArea').classList.remove('hidden');
+  await refreshMessages();
+  if(chatPoll) clearInterval(chatPoll);
+  chatPoll = setInterval(refreshMessages, 5000);
+}
+
+async function closeChat(){
+  if(!currentRequest) return;
+  if(!confirm('گفتگو برای هر دو طرف بسته شود؟ بعد از بستن، ارسال پیام جدید ممکن نیست.')) return;
+  try{
+    const d = await api('/api/project-requests/' + encodeURIComponent(currentRequest) + '/close', { method: 'POST', body: '{}' });
+    if(chatPoll) clearInterval(chatPoll);
+    chatPoll = null;
+    currentRequest = '';
+    $('chatArea').innerHTML = emptyHTML('fa-lock', d.message);
+    msg(d.message);
+    loadChats();
+    load();
+  } catch(e){ msg(e.message) }
+}
+
+async function refreshMessages(){
+  if(!currentRequest) return;
+  try{
+    const d = await api('/api/project-requests/' + encodeURIComponent(currentRequest) + '/messages');
+    const a = $('chatArea');
+    if(!$('messages')){
+      a.innerHTML = `
+        <div class="chat-head">
+          <h3><i class="fa-solid fa-comments" style="color:var(--orange);margin-left:6px"></i> گفتگو درباره پروژه</h3>
+          <button type="button" class="btn btn-danger btn-sm" onclick="closeChat()">
+            <i class="fa-solid fa-xmark"></i> لغو گفتگو و بستن چت
+          </button>
+        </div>
+        <div class="notice" style="margin-bottom:12px">
+          <i class="fa-solid fa-shield-halved"></i>
+          <div>پیام‌ها ابتدا توسط سرور و ادمین بررسی می‌شوند. حداقل ۲۰ نویسه بنویسید. شماره تماس، ایمیل، لینک یا شناسه شبکه اجتماعی ارسال نکنید.</div>
+        </div>
+        <div class="messages" id="messages"></div>
+        <form class="compose" id="compose">
+          <input id="body" maxlength="1500" autocomplete="off" placeholder="پیام خود را بنویسید..." required>
+          <button class="btn btn-primary" type="submit"><i class="fa-solid fa-paper-plane"></i> ارسال</button>
+        </form>`;
+      $('compose').onsubmit = async e => {
+        e.preventDefault();
+        const body = $('body').value;
+        try{
+          const sent = await api('/api/project-requests/' + encodeURIComponent(currentRequest) + '/messages', {
+            method: 'POST',
+            body: JSON.stringify({ body })
+          });
+          $('body').value = '';
+          pendingMessages.push({ id: sent.id, body, requestId: currentRequest });
+          msg(sent.message);
+          await refreshMessages();
+        } catch(err){ msg(err.message) }
+      };
+    }
+    const box = $('messages');
+    const nearBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 60;
+    box.replaceChildren();
+    d.messages.forEach(m => {
+      const el = document.createElement('div');
+      el.className = 'msg' + (m.sender_id === window.myUserId ? ' mine' : '');
+      el.innerHTML = esc(m.body) + '<span class="time">' + new Date(m.created_at).toLocaleString('fa-IR') + '</span>';
+      box.appendChild(el);
+    });
+    for(const pm of [...pendingMessages].filter(x => x.requestId === currentRequest)){
+      const el = document.createElement('div');
+      el.className = 'msg mine pending-local';
+      el.innerHTML = esc(pm.body) + '<span class="time">⏳ در انتظار بررسی سرور و تأیید ادمین</span>';
+      box.appendChild(el);
+      try{
+        const st = await api('/api/chat-messages/' + encodeURIComponent(pm.id) + '/status');
+        if(st.status !== 'pending'){
+          pendingMessages = pendingMessages.filter(x => x.id !== pm.id);
+          msg(st.message);
+        }
+      } catch(_){}
+    }
+    if(nearBottom) box.scrollTop = box.scrollHeight;
+  } catch(e){
+    if(String(e.message || '').includes('بسته شده')){
+      if(chatPoll) clearInterval(chatPoll);
+      chatPoll = null;
+      $('chatArea').innerHTML = emptyHTML('fa-lock', 'این گفتگو توسط یکی از طرفین بسته شده است.');
+      currentRequest = '';
+      loadChats();
+    } else {
+      msg(e.message);
+    }
+  }
+}
+
+(async () => {
+  try{
+    const d = await api('/api/me');
+    window.myUserId = d.user.id;
+  } catch(_){}
+  await load();
+})();
+</script>
+</body>
+</html>

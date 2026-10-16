@@ -132,6 +132,45 @@ def apply_action(action: str, item_id: str):
                 )
                 result = "❌ ویرایش پروفایل رد شد؛ اطلاعات قبلی حفظ شد و حساب فعال ماند."
 
+        elif action in ("chat_approve", "chat_reject"):
+            pending = conn.execute(
+                "SELECT * FROM pending_chat_messages WHERE id=?", (item_id,)
+            ).fetchone()
+            if not pending:
+                return "⚠️ پیام پیدا نشد."
+            if pending["status"] != "pending":
+                return "ℹ️ این پیام قبلاً بررسی شده است."
+            sender = pending["sender_id"]
+            request = conn.execute(
+                """SELECT r.*, p.user_id AS employer_id, p.title AS project_title
+                   FROM project_requests r JOIN projects p ON p.id=r.project_id
+                   WHERE r.id=?""", (pending["request_id"],)
+            ).fetchone()
+            if not request:
+                conn.execute("UPDATE pending_chat_messages SET status='rejected',decided_at=? WHERE id=?",
+                             (datetime.now(timezone.utc).isoformat(), item_id))
+                result = "❌ گفتگو پیدا نشد؛ پیام رد شد."
+            elif action == "chat_approve":
+                conn.execute(
+                    "INSERT INTO project_chat_messages(id,request_id,sender_id,body,created_at) VALUES(?,?,?,?,?)",
+                    (item_id, pending["request_id"], sender, pending["body"], datetime.now(timezone.utc).isoformat())
+                )
+                other = request["contractor_id"] if sender == request["employer_id"] else request["employer_id"]
+                now = datetime.now(timezone.utc).isoformat()
+                conn.execute("INSERT INTO notifications(id,user_id,kind,project_id,request_id,is_read,created_at) VALUES(?,?,?,?,?,?,?)",
+                             (__import__("secrets").token_hex(16), other, "chat_message", request["project_id"], pending["request_id"], 0, now))
+                conn.execute("INSERT INTO notifications(id,user_id,kind,project_id,request_id,is_read,created_at) VALUES(?,?,?,?,?,?,?)",
+                             (__import__("secrets").token_hex(16), sender, "message_approved", request["project_id"], pending["request_id"], 0, now))
+                conn.execute("UPDATE pending_chat_messages SET status='approved',decided_at=? WHERE id=?",
+                             (now, item_id))
+                result = "✅ پیام تأیید شد و برای طرف مقابل ارسال شد."
+            else:
+                now = datetime.now(timezone.utc).isoformat()
+                conn.execute("UPDATE pending_chat_messages SET status='rejected',decided_at=? WHERE id=?", (now, item_id))
+                conn.execute("INSERT INTO notifications(id,user_id,kind,project_id,request_id,is_read,created_at) VALUES(?,?,?,?,?,?,?)",
+                             (__import__("secrets").token_hex(16), sender, "message_rejected", request["project_id"], pending["request_id"], 0, now))
+                result = "❌ پیام به دلیل ملاحظات امنیتی رد شد."
+
         elif action in ("project_approve", "project_reject"):
             project = conn.execute(
                 """SELECT p.*, u.status AS owner_status
@@ -212,25 +251,21 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 def check_messages():
-    token = os.getenv("TELEGRAM_BOT_TOKEN", "8901685843:AAGIeS4fFwq4tYIQTF9m6VpsmEWrMTAULs0").strip()
+    token = "8901685843:AAGIeS4fFwq4tYIQTF9m6VpsmEWrMTAULs0"
     if not token:
         raise SystemExit(
             "TELEGRAM_BOT_TOKEN تنظیم نشده است. آن را در .env قرار دهید."
         )
 
-    application = (
-    Application.builder()
-        .token(token)
-        .proxy("socks5://127.0.0.1:2080")   # یا http://127.0.0.1:8080
-        .get_updates_proxy("socks5://127.0.0.1:2080")
-        .build()
-        )
-
-    application = Application.builder().token(token).build()
+    builder = Application.builder().token(token)
+    proxy = os.getenv("TELEGRAM_PROXY", "").strip()
+    if proxy:
+        builder = builder.proxy(proxy).get_updates_proxy(proxy)
+    application = builder.build()
     application.add_handler(
         CallbackQueryHandler(
             button_handler,
-            pattern=r"^(approve|reject|description_approve|description_reject|profile_approve|profile_reject|project_approve|project_reject):",
+            pattern=r"^(approve|reject|description_approve|description_reject|profile_approve|profile_reject|project_approve|project_reject|chat_approve|chat_reject):",
         )
     )
 

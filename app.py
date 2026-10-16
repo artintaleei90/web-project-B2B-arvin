@@ -1,4 +1,6 @@
 import os
+import sys
+import asyncio
 import sqlite3
 import hashlib
 import hmac
@@ -7,6 +9,7 @@ import logging
 import base64
 import json
 import mimetypes
+import subprocess
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -131,6 +134,8 @@ def init_db():
             proposed_price TEXT NOT NULL DEFAULT '',
             created_at TEXT NOT NULL,
             decided_at TEXT,
+            chat_closed_at TEXT,
+            chat_closed_by TEXT,
             UNIQUE(project_id, contractor_id)
         );
         CREATE INDEX IF NOT EXISTS idx_project_requests_project
@@ -157,6 +162,17 @@ def init_db():
             is_read INTEGER NOT NULL DEFAULT 0
         );
         CREATE INDEX IF NOT EXISTS idx_chat_request ON project_chat_messages(request_id, created_at);
+
+        CREATE TABLE IF NOT EXISTS pending_chat_messages (
+            id TEXT PRIMARY KEY,
+            request_id TEXT NOT NULL,
+            sender_id TEXT NOT NULL,
+            body TEXT NOT NULL,
+            status TEXT NOT NULL DEFAULT 'pending',
+            created_at TEXT NOT NULL,
+            decided_at TEXT
+        );
+        CREATE INDEX IF NOT EXISTS idx_pending_chat_sender ON pending_chat_messages(sender_id, status, created_at);
 
         CREATE TABLE IF NOT EXISTS reviews (
             id TEXT PRIMARY KEY,
@@ -214,9 +230,65 @@ def init_db():
         for column, sql in request_migrations.items():
             if column not in existing_requests:
                 db.execute(sql)
+        existing_requests = {row[1] for row in db.execute("PRAGMA table_info(project_requests)").fetchall()}
+        for column, sql in {
+            "chat_closed_at": "ALTER TABLE project_requests ADD COLUMN chat_closed_at TEXT",
+            "chat_closed_by": "ALTER TABLE project_requests ADD COLUMN chat_closed_by TEXT",
+        }.items():
+            if column not in existing_requests:
+                db.execute(sql)
 
 
 init_db()
+
+# Run Telegram callback listener alongside the FastAPI server.
+# On Windows, asyncio.create_subprocess_exec raises NotImplementedError on
+# some event loop policies, so we use subprocess.Popen instead (non-blocking).
+_telegram_listener = None
+
+
+@app.on_event("startup")
+async def start_telegram_listener():
+    global _telegram_listener
+    token = os.getenv(
+        "TELEGRAM_BOT_TOKEN",
+        "8901685843:AAGIeS4fFwq4tYIQTF9m6VpsmEWrMTAULs0",
+    ).strip()
+    if not token:
+        log.warning("TELEGRAM_BOT_TOKEN تنظیم نشده؛ listener تلگرام اجرا نشد.")
+        return
+    script = BASE_DIR / "check_message.py"
+    if not script.is_file():
+        log.warning("check_message.py پیدا نشد؛ listener تلگرام اجرا نشد.")
+        return
+    try:
+        creationflags = 0
+        if os.name == "nt":
+            creationflags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
+        _telegram_listener = subprocess.Popen(
+            [sys.executable, str(script)],
+            cwd=str(BASE_DIR),
+            creationflags=creationflags,
+        )
+        log.info(
+            "Telegram callback listener started with PID %s",
+            _telegram_listener.pid,
+        )
+    except Exception:
+        log.exception("Could not start Telegram callback listener")
+
+
+@app.on_event("shutdown")
+async def stop_telegram_listener():
+    global _telegram_listener
+    if _telegram_listener and _telegram_listener.poll() is None:
+        _telegram_listener.terminate()
+        try:
+            _telegram_listener.wait(timeout=8)
+        except subprocess.TimeoutExpired:
+            _telegram_listener.kill()
+            _telegram_listener.wait()
+    _telegram_listener = None
 
 
 # ---------------- security ----------------
@@ -543,7 +615,7 @@ def save_registration_files(data: RegisterIn, user_id: str):
     attachments.append(
         {
             "path": national,
-            "caption": f"🪪 کارت ملی — {data.first_name} {data.last_name} | کد ملی: {data.national_id}",
+            "caption": f"🆔 کاربر {user_id} | 🪪 کارت ملی — {data.first_name} {data.last_name} | کد ملی: {data.national_id}",
         }
     )
 
@@ -555,7 +627,7 @@ def save_registration_files(data: RegisterIn, user_id: str):
     for i, item in enumerate(data.project_images, 1):
         p = save_data_url(item, user_id, "project_image", i)
         attachments.append(
-            {"path": p, "caption": f"🖼 تصویر نمونه پروژه {i} از {total_proj}"}
+            {"path": p, "caption": f"🆔 کاربر {user_id} | 🖼 نمونه‌کار {i} از {total_proj}"}
         )
 
     if len(data.company_documents) > MAX_COMPANY_DOCUMENTS:
@@ -566,7 +638,7 @@ def save_registration_files(data: RegisterIn, user_id: str):
     for i, item in enumerate(data.company_documents, 1):
         p = save_data_url(item, user_id, "company_document", i)
         attachments.append(
-            {"path": p, "caption": f"📎 مدرک شرکت {i} از {total_doc}"}
+            {"path": p, "caption": f"🆔 کاربر {user_id} | 📎 مدرک شرکت {i} از {total_doc}"}
         )
 
     return attachments
@@ -733,7 +805,7 @@ def register(
         user_id,
         message,
         "registration",
-        attachments[:1],
+        attachments,
     )
 
     with get_db() as db:
@@ -809,8 +881,19 @@ def profile(user=Depends(current_user)):
             )
         ]
 
+    public_user = user_public(user)
+    try:
+        raw_images = json.loads(public_user.get("project_images") or "[]")
+    except (TypeError, ValueError):
+        raw_images = []
+    public_user["project_image_urls"] = [
+        f"/uploads/{str(item).lstrip(chr(47))}"
+        for item in raw_images
+        if isinstance(item, str) and item.strip()
+    ]
+    public_user.pop("project_images", None)
     return {
-        "user": user_public(user),
+        "user": public_user,
         "projects": projects,
         "reviews": reviews,
     }
@@ -1052,7 +1135,7 @@ def create_project(
         attachments.append(
             {
                 "path": image_path,
-                "caption": f"🖼 تصویر پروژه — {data.title}",
+                "caption": f"🆔 پروژه {project_id} | 🖼 تصویر پروژه — {data.title}",
             }
         )
 
@@ -1385,6 +1468,8 @@ def ensure_request_party(db, request_id, user_id):
         raise HTTPException(403, "به این گفتگو دسترسی ندارید.")
     if row["status"] != "accepted":
         raise HTTPException(403, "گفتگو پس از انتخاب پیمانکار توسط کارفرما فعال می‌شود.")
+    if row["chat_closed_at"]:
+        raise HTTPException(410, "این گفتگو توسط یکی از طرفین بسته شده است و دیگر امکان ارسال پیام ندارد.")
     return row
 
 def safe_profile(db, uid):
@@ -1394,6 +1479,17 @@ def safe_profile(db, uid):
     if not row:
         raise HTTPException(404, "پروفایل پیدا نشد.")
     d = dict(row)
+    # نمونه‌کارها فقط از مسیر فایل‌های ذخیره‌شده و برای پروفایل تأییدشده نمایش داده می‌شوند.
+    try:
+        raw_images = json.loads(d.get("project_images") or "[]")
+    except (TypeError, ValueError):
+        raw_images = []
+    d["project_image_urls"] = [
+        f"/uploads/{str(item).lstrip(chr(47))}"
+        for item in raw_images
+        if isinstance(item, str) and item.strip()
+    ]
+    d.pop("project_images", None)
     # Deliberately omit phone, email, national ID, birth date and private documents.
     return d
 
@@ -1416,18 +1512,32 @@ def employer_project_requests(project_id: str, user=Depends(current_user)):
         p=db.execute("SELECT id,title,user_id FROM projects WHERE id=?", (project_id,)).fetchone()
         if not p: raise HTTPException(404, "پروژه پیدا نشد.")
         if p["user_id"] != user["id"]: raise HTTPException(403, "این پروژه متعلق به شما نیست.")
-        rows=db.execute("""SELECT r.id AS request_id,r.status,r.proposed_duration,r.proposed_price,r.created_at,
+        rows=db.execute("""SELECT r.id AS request_id,r.status,r.chat_closed_at,r.proposed_duration,r.proposed_price,r.created_at,
             u.id AS contractor_id,u.first_name,u.last_name,u.role,u.company_name,u.description,
             u.activity_city,u.activity_field,u.work_history,u.project_samples,u.project_images
             FROM project_requests r JOIN users u ON u.id=r.contractor_id
             WHERE r.project_id=? ORDER BY CASE r.status WHEN 'accepted' THEN 0 WHEN 'pending' THEN 1 ELSE 2 END, r.created_at DESC""", (project_id,)).fetchall()
-    return {"project":{"id":p["id"],"title":p["title"]},"requests":[dict(x) for x in rows]}
+    request_items = []
+    for row in rows:
+        item = dict(row)
+        try:
+            raw_images = json.loads(item.get("project_images") or "[]")
+        except (TypeError, ValueError):
+            raw_images = []
+        item["project_image_urls"] = [
+            f"/uploads/{str(path).lstrip(chr(47))}"
+            for path in raw_images
+            if isinstance(path, str) and path.strip()
+        ]
+        item.pop("project_images", None)
+        request_items.append(item)
+    return {"project":{"id":p["id"],"title":p["title"]},"requests":request_items}
 
 @app.get("/api/contractor/my-requests")
 def contractor_my_requests(user=Depends(current_user)):
     require_role(user, "contractor")
     with get_db() as db:
-        rows=db.execute("""SELECT r.id AS request_id,r.status,r.proposed_duration,r.proposed_price,r.created_at,
+        rows=db.execute("""SELECT r.id AS request_id,r.status,r.chat_closed_at,r.proposed_duration,r.proposed_price,r.created_at,
             p.id AS project_id,p.title,p.need,p.city,p.budget,p.details,p.status AS project_status
             FROM project_requests r JOIN projects p ON p.id=r.project_id
             WHERE r.contractor_id=? ORDER BY r.created_at DESC""", (user["id"],)).fetchall()
@@ -1445,6 +1555,34 @@ def delete_own_request(request_id: str, user=Depends(current_user)):
         db.execute("DELETE FROM notifications WHERE request_id=?", (request_id,))
         db.execute("DELETE FROM project_requests WHERE id=?", (request_id,))
     return {"message":"درخواست حذف شد و ظرفیت شما آزاد شد."}
+
+@app.post("/api/project-requests/{request_id}/close")
+def close_project_chat(request_id: str, user=Depends(current_user)):
+    require_approved(user)
+    with get_db() as db:
+        row = db.execute(
+            "SELECT r.*, p.user_id AS employer_id FROM project_requests r JOIN projects p ON p.id=r.project_id WHERE r.id=?",
+            (request_id,),
+        ).fetchone()
+        if not row:
+            raise HTTPException(404, "گفتگو پیدا نشد.")
+        if user["id"] not in (row["employer_id"], row["contractor_id"]):
+            raise HTTPException(403, "به این گفتگو دسترسی ندارید.")
+        if row["status"] != "accepted":
+            raise HTTPException(400, "این درخواست گفتگوی فعالی ندارد.")
+        if row["chat_closed_at"]:
+            return {"message": "این گفتگو قبلاً بسته شده است.", "closed": True}
+        db.execute(
+            "UPDATE project_requests SET chat_closed_at=?, chat_closed_by=? WHERE id=? AND chat_closed_at IS NULL",
+            (now_iso(), user["id"], request_id),
+        )
+        other_id = row["contractor_id"] if user["id"] == row["employer_id"] else row["employer_id"]
+        db.execute(
+            "INSERT INTO notifications(id,user_id,kind,project_id,request_id,is_read,created_at) VALUES(?,?,?,?,?,?,?)",
+            (secrets.token_hex(16), other_id, "chat_closed", row["project_id"], request_id, 0, now_iso()),
+        )
+    return {"message": "گفتگو بسته شد؛ هیچ‌کدام از طرفین دیگر نمی‌توانند پیام جدید بفرستند.", "closed": True}
+
 
 @app.get("/api/project-requests/{request_id}/profile")
 def project_request_profile(request_id: str, user=Depends(current_user)):
@@ -1467,21 +1605,36 @@ def get_chat_messages(request_id: str, user=Depends(current_user)):
     return {"messages":[dict(x) for x in rows]}
 
 @app.post("/api/project-requests/{request_id}/messages")
-def send_chat_message(request_id: str, data: dict, user=Depends(current_user)):
+def send_chat_message(request_id: str, data: dict, background: BackgroundTasks, user=Depends(current_user)):
     require_approved(user)
     body=str(data.get("body", "")).strip()
-    if not body or len(body)>1500: raise HTTPException(400,"پیام باید بین ۱ تا ۱۵۰۰ کاراکتر باشد.")
-    if any(p.search(body) for p in CONTACT_PATTERNS) or re.search(r"(?<!\d)(?:[0-9۰-۹٠-٩][\s().-]*){8,}(?!\d)",body) or contains_spelled_number_sequence(body):
-        raise HTTPException(400,"ارسال شماره تماس، ایمیل، لینک، آیدی شبکه‌های اجتماعی یا اطلاعات ارتباطی در گفتگو مجاز نیست. لطفاً پیام را بدون اطلاعات تماس بنویسید.")
+    if len(body) < 20 or len(body)>1500:
+        raise HTTPException(400,"لطفاً پیام کامل و واضحی بین ۲۰ تا ۱۵۰۰ کاراکتر بنویسید تا بررسی امنیتی دقیق‌تر انجام شود.")
+    if any(p.search(body) for p in CONTACT_PATTERNS) or re.search(r"(?<!\\d)(?:[0-9۰-۹٠-٩][\\s().-]*){8,}(?!\\d)",body) or contains_spelled_number_sequence(body):
+        raise HTTPException(400,"پیام به دلیل وجود اطلاعات تماس یا تلاش برای تبادل اطلاعات ارتباطی قابل ارسال نیست. لطفاً متن را بدون شماره، ایمیل، لینک یا آیدی بازنویسی کنید.")
     with get_db() as db:
         r=ensure_request_party(db,request_id,user["id"])
         mid=secrets.token_hex(16)
-        db.execute("INSERT INTO project_chat_messages(id,request_id,sender_id,body,created_at) VALUES(?,?,?,?,?)",(mid,request_id,user["id"],body,now_iso()))
-        other=r["contractor_id"] if user["id"]==r["employer_id"] else r["employer_id"]
-        db.execute("INSERT INTO notifications(id,user_id,kind,project_id,request_id,is_read,created_at) VALUES(?,?,?,?,?,?,?)",(secrets.token_hex(16),other,"chat_message",r["project_id"],request_id,0,now_iso()))
-    return {"message":"پیام ارسال شد.","id":mid}
+        db.execute("INSERT INTO pending_chat_messages(id,request_id,sender_id,body,status,created_at) VALUES(?,?,?,?,?,?)",(mid,request_id,user["id"],body,"pending",now_iso()))
+        project=db.execute("SELECT title FROM projects WHERE id=?",(r["project_id"],)).fetchone()
+    admin_text=f"""🛡️ بررسی امنیتی پیام گفتگو
 
-# ---------------- uploads ----------------
+🆔 شناسه پیام: {mid}
+📌 پروژه: {project['title'] if project else 'پروژه'}
+👤 فرستنده: {user['first_name']} {user['last_name']}
+🧾 متن پیام:
+{body}"""
+    background.add_task(send_admin_approval,mid,admin_text,"chat_message",[])
+    return {"message":"پیام شما ابتدا توسط سرور بررسی می‌شود و سپس برای تأیید نهایی به ادمین می‌رود؛ بعد از تأیید ارسال خواهد شد.","id":mid,"status":"pending"}
+
+
+@app.get("/api/chat-messages/{message_id}/status")
+def chat_message_status(message_id: str, user=Depends(current_user)):
+    with get_db() as db:
+        row=db.execute("SELECT id,status FROM pending_chat_messages WHERE id=? AND sender_id=?",(message_id,user["id"])).fetchone()
+    if not row: raise HTTPException(404,"پیام پیدا نشد.")
+    return {"status":row["status"],"message":{"pending":"پیام در حال بررسی امنیتی است.","approved":"پیام تأیید و ارسال شد.","rejected":"پیام شما به دلیل امنیتی رد می‌شود."}.get(row["status"],"وضعیت پیام مشخص نیست.")}
+
 @app.get("/uploads/{file_path:path}", include_in_schema=False)
 def uploaded_file(file_path: str):
     root = UPLOAD_DIR.resolve()

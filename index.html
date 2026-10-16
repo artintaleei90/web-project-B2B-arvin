@@ -2478,6 +2478,19 @@ document.addEventListener('keydown', e => { if(e.key === 'Escape') closeAllModal
 
 function showBox(id, text){ const el=$(id); if(el){ el.textContent=text; el.classList.add('show'); } }
 function hideBox(id){ const el=$(id); if(el) el.classList.remove('show'); }
+function showToast(message, kind='info'){
+  let toast=$('globalToast');
+  if(!toast){
+    toast=document.createElement('div'); toast.id='globalToast'; toast.setAttribute('role','status');
+    toast.style.cssText='position:fixed;z-index:100000;top:22px;left:50%;transform:translateX(-50%);width:min(92vw,520px);padding:16px 20px;border-radius:16px;background:#102a43;color:#fff;box-shadow:0 18px 55px #0003;font-weight:700;text-align:center;line-height:1.9;border:1px solid #ffffff24';
+    document.body.appendChild(toast);
+  }
+  toast.textContent=String(message||'عملیات انجام نشد.');
+  toast.style.background=kind==='error'?'#8f1d2c':'#102a43';
+  toast.style.display='block';
+  clearTimeout(window.__globalToastTimer);
+  window.__globalToastTimer=setTimeout(()=>{toast.style.display='none';},4800);
+}
 
 /* ============ MOBILE MENU ============ */
 const hamburger = $('hamburger'), mobileNav = $('mobileNav'), mobileOverlay = $('mobileOverlay');
@@ -2587,15 +2600,19 @@ async function openProjectDetails(projectId){
   try{
     await refreshCurrentUser();
     const data = await api('/api/projects/'+encodeURIComponent(projectId));
-    const p = data.project;
-    $('projectDetailTitle').textContent = p.title;
-    $('projectDetailNeed').textContent = p.need;
-    $('projectDetailCity').textContent = p.city;
-    $('projectDetailBudget').textContent = p.budget || 'توافقی';
-    $('projectDetailDetails').textContent = p.details || 'توضیحی ثبت نشده است.';
+    const p = data && data.project;
+    if(!p) throw new Error('اطلاعات این پروژه دریافت نشد. صفحه را تازه‌سازی کنید.');
+    const putText=(id,value)=>{ const el=$(id); if(el) el.textContent=value; };
+    putText('projectDetailTitle',p.title || 'پروژه');
+    putText('projectDetailNeed',p.need || 'ثبت نشده');
+    putText('projectDetailCity',p.city || 'ثبت نشده');
+    putText('projectDetailBudget',p.budget || 'توافقی');
+    putText('projectDetailDetails',p.details || 'توضیحی ثبت نشده است.');
     const img=$('projectDetailImage');
-    if(p.image_url){ img.src=p.image_url; img.style.display='block'; }
-    else { img.removeAttribute('src'); img.style.display='none'; }
+    if(img){
+      if(p.image_url){ img.src=p.image_url; img.style.display='block'; }
+      else { img.removeAttribute('src'); img.style.display='none'; }
+    }
 
     const btn=$('projectRequestBtn');
     btn.style.display='none';
@@ -2616,7 +2633,7 @@ async function openProjectDetails(projectId){
     hideBox('projectDetailError');
     hideBox('projectDetailSuccess');
     openModal('projectDetailModal');
-  }catch(err){ alert(err.message); }
+  }catch(err){ showToast(err.message || 'باز کردن پروژه با خطا مواجه شد.','error'); }
 }
 
 $('requestForm').addEventListener('submit', async e=>{
@@ -2688,6 +2705,12 @@ async function openNotifications(){
           ? 'درخواست جدید برای پروژه'
           : n.kind==='request_accepted'
           ? 'درخواست شما پذیرفته شد'
+          : n.kind==='message_approved'
+          ? 'پیام شما تأیید و ارسال شد'
+          : n.kind==='message_rejected'
+          ? 'پیام شما به دلیل امنیتی رد می‌شود'
+          : n.kind==='chat_message'
+          ? 'پیام جدید در گفتگوی پروژه'
           : 'اعلان';
         const p=document.createElement('p');
         p.textContent=n.project_title ? 'پروژه: '+n.project_title : '';
