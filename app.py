@@ -6,6 +6,7 @@ import hashlib
 import hmac
 import secrets
 import logging
+import threading
 import base64
 import json
 import mimetypes
@@ -32,9 +33,10 @@ UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 MAX_FILE_BYTES = 10 * 1024 * 1024
 MAX_PROJECT_IMAGES = 20
+TELEGRAM_APPROVAL_LOCK = threading.Lock()
 MAX_COMPANY_DOCUMENTS = 20
 DB_PATH = Path(os.getenv("SANAT_DB", str(BASE_DIR / "sanat_market.db")))
-ADMIN_CHAT_ID = int(os.getenv("ADMIN_CHAT_ID", "6933858510"))
+ADMIN_CHAT_ID = int(os.getenv("ADMIN_CHAT_ID", "981231444"))
 SESSION_DAYS = 30
 REJECT_COOLDOWN = timedelta(days=5)
 
@@ -117,6 +119,7 @@ def init_db():
             budget TEXT NOT NULL DEFAULT '',
             details TEXT NOT NULL DEFAULT '',
             image_path TEXT,
+            images_json TEXT NOT NULL DEFAULT '[]',
             status TEXT NOT NULL DEFAULT 'pending',
             created_at TEXT NOT NULL,
             approved_at TEXT,
@@ -217,6 +220,7 @@ def init_db():
         existing_projects = {row[1] for row in db.execute("PRAGMA table_info(projects)").fetchall()}
         project_migrations = {
             "budget": "ALTER TABLE projects ADD COLUMN budget TEXT NOT NULL DEFAULT ''",
+            "images_json": "ALTER TABLE projects ADD COLUMN images_json TEXT NOT NULL DEFAULT '[]'",
         }
         for column, sql in project_migrations.items():
             if column not in existing_projects:
@@ -252,7 +256,7 @@ async def start_telegram_listener():
     global _telegram_listener
     token = os.getenv(
         "TELEGRAM_BOT_TOKEN",
-        "8901685843:AAGIeS4fFwq4tYIQTF9m6VpsmEWrMTAULs0",
+        "1558331832:izeJm4eKh_m2VIes4C-m5_r0jP68Dy48iAM",
     ).strip()
     if not token:
         log.warning("TELEGRAM_BOT_TOKEN تنظیم نشده؛ listener تلگرام اجرا نشد.")
@@ -481,6 +485,7 @@ class ProjectIn(BaseModel):
     budget: str = ""
     details: str = ""
     image: Optional[str] = None
+    images: list[str] = Field(default_factory=list)
 
     @field_validator("title", "need", "city")
     @classmethod
@@ -539,6 +544,14 @@ def public_project(row) -> dict:
     d["owner_id"] = owner_id
     d["budget"] = d.get("budget") or ""
     d["image_url"] = f"/uploads/{d['image_path']}" if d.get("image_path") else None
+    try:
+        paths = json.loads(d.get("images_json") or "[]")
+    except (TypeError, ValueError):
+        paths = []
+    if not paths and d.get("image_path"):
+        paths = [d["image_path"]]
+    d["image_urls"] = [f"/uploads/{str(x).lstrip(chr(47))}" for x in paths if isinstance(x, str) and x]
+    d.pop("images_json", None)
     return d
 
 
@@ -551,13 +564,15 @@ def send_admin_approval(
 ):
     try:
         from telegram_api import send_approval
-        send_approval(
-            text[:4000],
-            ADMIN_CHAT_ID,
-            item_id,
-            kind,
-            attachments or [],
-        )
+        # Serialize complete batches so two registrations cannot interleave their files.
+        with TELEGRAM_APPROVAL_LOCK:
+            send_approval(
+                text[:4000],
+                ADMIN_CHAT_ID,
+                item_id,
+                kind,
+                attachments or [],
+            )
     except Exception:
         log.exception("Telegram notification failed")
 
@@ -627,7 +642,7 @@ def save_registration_files(data: RegisterIn, user_id: str):
     for i, item in enumerate(data.project_images, 1):
         p = save_data_url(item, user_id, "project_image", i)
         attachments.append(
-            {"path": p, "caption": f"🆔 کاربر {user_id} | 🖼 نمونه‌کار {i} از {total_proj}"}
+            {"path": p, "caption": f"🆔 کاربر {user_id} | 👤 {data.first_name} {data.last_name} | 🖼 نمونه‌کار {i} از {total_proj}"}
         )
 
     if len(data.company_documents) > MAX_COMPANY_DOCUMENTS:
@@ -638,7 +653,7 @@ def save_registration_files(data: RegisterIn, user_id: str):
     for i, item in enumerate(data.company_documents, 1):
         p = save_data_url(item, user_id, "company_document", i)
         attachments.append(
-            {"path": p, "caption": f"🆔 کاربر {user_id} | 📎 مدرک شرکت {i} از {total_doc}"}
+            {"path": p, "caption": f"🆔 کاربر {user_id} | 👤 {data.first_name} {data.last_name} | 📎 مدرک شرکت {i} از {total_doc}"}
         )
 
     return attachments
@@ -1086,18 +1101,20 @@ def create_project(
 
     project_id = secrets.token_hex(16)
     image_path = None
-
-    if data.image:
-        image_path = save_data_url(
-            data.image, user["id"], "project_main", 1
-        )
+    images = list(data.images or [])
+    if data.image and not images:
+        images = [data.image]
+    if len(images) > MAX_PROJECT_IMAGES:
+        raise HTTPException(400, f"حداکثر {MAX_PROJECT_IMAGES} تصویر برای هر پروژه مجاز است.")
+    image_paths = [save_data_url(item, user["id"], "project_main", i) for i, item in enumerate(images, 1)]
+    image_path = image_paths[0] if image_paths else None
 
     created = now_iso()
     with get_db() as db:
         db.execute(
             """INSERT INTO projects
-               (id,user_id,title,need,city,budget,details,image_path,status,created_at)
-               VALUES (?,?,?,?,?,?,?,?,?,?)""",
+               (id,user_id,title,need,city,budget,details,image_path,images_json,status,created_at)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
             (
                 project_id,
                 user["id"],
@@ -1107,6 +1124,7 @@ def create_project(
                 data.budget,
                 data.details,
                 image_path,
+                json.dumps(image_paths, ensure_ascii=False),
                 "pending",
                 created,
             ),
@@ -1131,13 +1149,8 @@ def create_project(
 ⏳ وضعیت: در انتظار بررسی ادمین"""
 
     attachments = []
-    if image_path:
-        attachments.append(
-            {
-                "path": image_path,
-                "caption": f"🆔 پروژه {project_id} | 🖼 تصویر پروژه — {data.title}",
-            }
-        )
+    for i, path in enumerate(image_paths, 1):
+        attachments.append({"path": path, "caption": f"🆔 پروژه {project_id} | 👤 {user['first_name']} {user['last_name']} | 🖼 تصویر {i} از {len(image_paths)} — {data.title}"})
 
     background.add_task(
         send_admin_approval,
@@ -1158,6 +1171,7 @@ def create_project(
             "details": data.details,
             "status": "pending",
             "image_url": f"/uploads/{image_path}" if image_path else None,
+            "image_urls": [f"/uploads/{x}" for x in image_paths],
             "created_at": created,
         },
     }
@@ -1670,6 +1684,12 @@ def projects_page():
         raise HTTPException(404, "projects.html کنار app.py پیدا نشد.")
     return FileResponse(f)
 
+
+@app.get("/project/{project_id}", include_in_schema=False)
+def project_detail_page(project_id: str):
+    f = BASE_DIR / "project.html"
+    if not f.exists(): raise HTTPException(404, "صفحه پروژه پیدا نشد.")
+    return FileResponse(f)
 
 @app.get("/my-projects", include_in_schema=False)
 def my_projects_page():

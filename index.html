@@ -2141,7 +2141,7 @@ body.is-logged .top-auth-buttons,body.is-logged .mnav-auth{display:none !importa
 </div>
 <div class="form-group">
 <label>عکس پروژه <span style="font-weight:400;color:#8a949c">(اختیاری)</span></label>
-<input id="projectImage" type="file" accept="image/jpeg,image/png,image/webp">
+<input id="projectImage" type="file" accept="image/jpeg,image/png,image/webp" multiple>
 </div>
 <button class="modal-submit" id="projectSubmit" type="submit">ثبت پروژه برای بررسی</button>
 </form>
@@ -2567,7 +2567,7 @@ async function loadHomeProjects(){
     projects.forEach(p => {
       const card = document.createElement('article');
       card.className = 'project-card';
-      card.addEventListener('click', () => openProjectDetails(p.id));
+      card.addEventListener('click', () => { location.href='/project/'+encodeURIComponent(p.id); });
       const img = document.createElement('div');
       img.className = 'project-img';
       if(p.image_url) img.style.backgroundImage = `url("${p.image_url}")`;
@@ -2794,13 +2794,13 @@ $('projectForm').addEventListener('submit', async e=>{
 
   const btn=$('projectSubmit'); btn.disabled=true;
   try{
-    const file=$('projectImage').files[0];
-    const image=file ? await new Promise((resolve,reject)=>{
-      const reader=new FileReader();
-      reader.onload=()=>resolve(reader.result);
-      reader.onerror=()=>reject(new Error('خواندن عکس با خطا مواجه شد.'));
-      reader.readAsDataURL(file);
-    }) : null;
+    const files=Array.from($('projectImage').files || []);
+    if(files.length>20) throw new Error('حداکثر ۲۰ تصویر برای هر پروژه مجاز است.');
+    const images=await Promise.all(files.map(file=>new Promise((resolve,reject)=>{
+      const reader=new FileReader(); reader.onload=()=>resolve(reader.result);
+      reader.onerror=()=>reject(new Error('خواندن عکس با خطا مواجه شد.')); reader.readAsDataURL(file);
+    })));
+    const image=images[0] || null;
 
     const data=await api('/api/projects',{
       method:'POST',
@@ -2810,7 +2810,7 @@ $('projectForm').addEventListener('submit', async e=>{
         city:$('projectCity').value,
         budget:$('projectBudget').value.trim(),
         details:$('projectDetails').value.trim(),
-        image
+        image, images
       })
     });
     $('projectForm').reset();

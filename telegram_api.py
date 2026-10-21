@@ -10,8 +10,7 @@ from urllib.error import HTTPError, URLError
 BASE_DIR = Path(__file__).resolve().parent
 
 # بهتره توکن فقط از env خونده بشه، نه hardcode
-DEFAULT_TOKEN = "8901685843:AAGIeS4fFwq4tYIQTF9m6VpsmEWrMTAULs0"
-
+DEFAULT_TOKEN = "1558331832:izeJm4eKh_m2VIes4C-m5_r0jP68Dy48iAM"
 
 def _keyboard(kind: str, item_id: str):
     if kind == "registration":
@@ -67,7 +66,7 @@ def _post_form(token, method, fields, files=None, timeout=300, retries=3):
 
     body.extend(f"--{boundary}--\r\n".encode())
 
-    url = f"https://api.telegram.org/bot{token}/{method}"
+    url = f"https://tapi.bale.ai/bot{token}/{method}"
     data = bytes(body)
     headers = {"Content-Type": f"multipart/form-data; boundary={boundary}"}
 
